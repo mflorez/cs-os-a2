@@ -1,0 +1,2 @@
+cd cs438/a2
+mput *.java

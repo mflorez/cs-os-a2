@@ -1,0 +1,1 @@
+psftp s0778295@rockhopper.monmouth.edu -b cmdput.txt
