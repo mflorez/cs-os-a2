@@ -101,7 +101,7 @@ extends PrimaryStore {
 	 The terminal identifier value.
        */
 
-      device = 'd',
+      device = 1,
 
       /**
 	 The number of words in a disk block.
@@ -141,7 +141,7 @@ extends PrimaryStore {
 	 The terminal identifier value.
        */
 
-      device = 't',
+      device = 3,
 
       /**
 	 The command to read data from the disk to storage.
@@ -272,6 +272,9 @@ extends PrimaryStore {
 
 
 // $Log: Hardware.java,v $
+// Revision 1.5  2012/02/27 19:33:13  rclayton
+// Get the device codes for the disk and terminal correct.
+//
 // Revision 1.4  2012/02/19 03:03:52  rclayton
 // Renumber the status codes.
 //
