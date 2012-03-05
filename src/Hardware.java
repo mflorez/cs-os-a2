@@ -104,16 +104,20 @@ extends PrimaryStore {
       device = 1,
 
       /**
-	 The number of words in a disk block.
+	 The number of words per block.
       */
 
       blockSize = 32,
 
       /**
-	 The number of blocks in a disk.
+	 The maximum number of blocks in a disk.  A disk may have fewer blocks
+	 than the maximum, but it will never have more.  A disk with fewer
+	 blocks than the maximum may have more blocks appended to increase the
+	 total number of blocks in the disk, but the disk will never have more
+	 than the maximum.
       */
 
-      blockCount = 32,
+      blockCount = 10000,
 
       /**
 	 The command to read data from the disk to storage.
@@ -272,6 +276,9 @@ extends PrimaryStore {
 
 
 // $Log: Hardware.java,v $
+// Revision 1.6  2012/02/29 01:34:54  rclayton
+// Up the blocks per disk.
+//
 // Revision 1.5  2012/02/27 19:33:13  rclayton
 // Get the device codes for the disk and terminal correct.
 //
