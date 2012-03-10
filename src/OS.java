@@ -30,8 +30,7 @@ public class OS implements OperatingSystem {
 		switch (it) {
 		case illegalInstruction:
 			simHW.store(Hardware.Address.haltRegister, 2);
-			break;
-	
+			break;	
 		case reboot:
 			// Load the disk to primary store one block at the time.			
 			simHW.store(Hardware.Address.diskBlockRegister, 0);
@@ -41,12 +40,10 @@ public class OS implements OperatingSystem {
 			break;
 		case systemCall:				
 			operatingSystemCall(simHW.fetch(Hardware.Address.systemBase));
-			break;
-		
+			break;		
 		case invalidAddress:
 			simHW.store(Hardware.Address.haltRegister, 2);
-			break;
-			
+			break;			
 		case disk:
 			int programBlocks = simHW.fetch(Hardware.Address.userBase);//Find how many blocks first program occupies 
 			int nextBlockStartaddress = simHW.fetch(Hardware.Address.diskAddressRegister) + 32; //Find where to load next block
@@ -78,7 +75,9 @@ public class OS implements OperatingSystem {
 				startPrograms = false;				
 			} 			
 			break;
-			
+		case terminal:
+			System.out.println("Interrupt: terminal");
+			break;
 		case countdown:
 			int cDownReg = simHW.fetch(Hardware.Address.countdownRegister);
 			if (cDownReg == 0) { // Count down finished reset to stop it from hanging.
