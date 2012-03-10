@@ -29,7 +29,9 @@ public class OS implements OperatingSystem {
 	public void interrupt(Hardware.Interrupt it) {
 		switch (it) {
 		case illegalInstruction:
+			simHW.store(Hardware.Address.haltRegister, 2);
 			break;
+	
 		case reboot:
 			// Load the disk to primary store one block at the time.			
 			simHW.store(Hardware.Address.diskBlockRegister, 0);
@@ -40,9 +42,11 @@ public class OS implements OperatingSystem {
 		case systemCall:				
 			operatingSystemCall(simHW.fetch(Hardware.Address.systemBase));
 			break;
+		
 		case invalidAddress:
 			simHW.store(Hardware.Address.haltRegister, 2);
 			break;
+			
 		case disk:
 			int programBlocks = simHW.fetch(Hardware.Address.userBase);//Find how many blocks first program occupies 
 			int nextBlockStartaddress = simHW.fetch(Hardware.Address.diskAddressRegister) + 32; //Find where to load next block
@@ -74,6 +78,7 @@ public class OS implements OperatingSystem {
 				startPrograms = false;				
 			} 			
 			break;
+			
 		case countdown:
 			int cDownReg = simHW.fetch(Hardware.Address.countdownRegister);
 			if (cDownReg == 0) { // Count down finished reset to stop it from hanging.
@@ -97,12 +102,20 @@ public class OS implements OperatingSystem {
 			break;
 		case SystemCall.exit:
 			simHW.store(Hardware.Address.haltRegister, 2);
-			break;
-		case SystemCall.getSlot:							
-			break;
+			break;		
+		case SystemCall.getSlot:
+			indexAddress =  this.simHW.fetch(1); // Get register 1.
+			indexBlock = this.simHW.fetch(indexAddress);
+			
+			this.simHW.store(1, indexAddress);
+			this.simHW.store(2, indexBlock);
+			this.simHW.store(0, Hardware.Status.ok);			
+			break;		
 		case SystemCall.putSlot:
-			break;
+			this.simHW.store(0, Hardware.Status.ok);	
+			break;		
 		case SystemCall.yield:
+			this.simHW.store(0, Hardware.Status.ok);
 			
 		}
 	}
@@ -190,7 +203,8 @@ public class OS implements OperatingSystem {
 	 * Process a program based on the range found in a program.
 	 */
 	private void preemptiveRoundRobinProcessing(int index) {
-		try {
+		boolean isValidIndex = indexExists(proEnt.getBlockEntityList(), index);
+		if (isValidIndex){
 			int pCRegister = proEnt.getBlockEntityList().get(index).getPCRegister();
 			int baseRegister = proEnt.getBlockEntityList().get(index).getBaseRegister();
 			int topRegister = proEnt.getBlockEntityList().get(index).getTopRegister();
@@ -198,10 +212,20 @@ public class OS implements OperatingSystem {
 			this.simHW.store(Hardware.Address.baseRegister, baseRegister); // Lowest legal address accessible to the current running process.
 			this.simHW.store(Hardware.Address.topRegister, topRegister); // One more than the highest legal address.
 
-		} catch (Exception ex) {
-			simHW.store(Hardware.Address.haltRegister, 2);			
-		}
-		
+		} else {
+			simHW.store(Hardware.Address.haltRegister, 2);
+		}			
+	}
+	
+	/**
+	 * Checks for valid program index
+	 * @param ls
+	 * @param index
+	 * @return
+	 */
+	private boolean indexExists(final List<BlockEntity> ls, final int index) {
+		boolean isValid = (index >= 0 && index <= ls.size());
+		return isValid;
 	}
 		
 }

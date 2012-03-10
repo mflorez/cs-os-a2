@@ -83,8 +83,8 @@ extends PrimaryStore {
       diskAddressRegister = diskBlockRegister + 1,
       diskStatusRegister = diskAddressRegister + 1,
       terminalDataRegister = diskStatusRegister + 1,
-      terminalAddressRegister = terminalDataRegister + 1,
-      terminalStatusRegister = terminalAddressRegister + 1;
+      terminalCommandRegister = terminalDataRegister + 1,
+      terminalStatusRegister = terminalCommandRegister + 1;
     }
 
 
@@ -267,9 +267,8 @@ extends PrimaryStore {
 	case ok            : return "ok";
 	case badPid        : return "bad PID";
 	case noResource    : return "no resource";
-	default            : SystemSim.panic("Unknown status value:  " + s);
+	default            : return "[Unknown status value:  " + s + "]";
         }
-      return "";
       }
     }
   }
