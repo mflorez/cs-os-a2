@@ -25,6 +25,9 @@ public class OS implements OperatingSystem {
 		dEnt = new DiskEntity();		
 	}
 
+	/**
+	 * OS Interrupt handler 
+	 */
 	@Override
 	public void interrupt(Hardware.Interrupt it) {
 		switch (it) {
