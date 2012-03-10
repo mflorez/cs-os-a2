@@ -32,22 +32,27 @@ public class OS implements OperatingSystem {
 	public void interrupt(Hardware.Interrupt it) {
 		switch (it) {
 		case illegalInstruction:
+			printLine("Interrupt: illegalInstruction");
 			simHW.store(Hardware.Address.haltRegister, 2);
 			break;	
 		case reboot:
+			printLine("Interrupt: reboot");
 			// Load the disk to primary store one block at the time.			
 			simHW.store(Hardware.Address.diskBlockRegister, 0);
 			simHW.store(Hardware.Address.diskAddressRegister, Hardware.Address.userBase);
 			simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);			
 			simHW.store(Hardware.Address.PCRegister, Hardware.Address.idleStart);//Set PCRegister to prevent illegal instruction interrupt
 			break;
-		case systemCall:				
+		case systemCall:
+			printLine("Interrupt: systemCall");
 			operatingSystemCall(simHW.fetch(Hardware.Address.systemBase));
 			break;		
 		case invalidAddress:
+			printLine("Interrupt: invalidAddress");
 			simHW.store(Hardware.Address.haltRegister, 2);
 			break;			
 		case disk:
+			printLine("Interrupt: disk");
 			int programBlocks = simHW.fetch(Hardware.Address.userBase);//Find how many blocks first program occupies 
 			int nextBlockStartaddress = simHW.fetch(Hardware.Address.diskAddressRegister) + 32; //Find where to load next block
 			
