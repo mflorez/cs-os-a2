@@ -90,6 +90,10 @@ public class OS implements OperatingSystem {
 		}
 	}
 
+	/**
+	 * Operating system calls.
+	 * @param sysCall
+	 */
 	public void operatingSystemCall(int sysCall) {
 		int indexAddress;
 		int indexBlock;		
@@ -156,6 +160,12 @@ public class OS implements OperatingSystem {
 				
 	}
 	
+	/**
+	 * Create block list.
+	 * @param list
+	 * @param L
+	 * @return
+	 */
 	static <T> List<List<T>> createBlockList(List<T> list, final int L) {
 		List<List<T>> parts = new ArrayList<List<T>>();
 		final int N = list.size();
@@ -192,8 +202,13 @@ public class OS implements OperatingSystem {
 		}				
 	}
 	
-	/*
+	/**
 	 * Creates a list containing all of the blocks within one program.  This allows preemptive round robin execution.
+	 * @param programStartBlock
+	 * @param processBlockCount
+	 * @param pCRegister
+	 * @param baseRegister
+	 * @param topRegister
 	 */
 	private void setProgramBlockList(int programStartBlock, int processBlockCount, int pCRegister, int baseRegister, int topRegister){
 		BlockEntity bEnt = new BlockEntity();
@@ -209,8 +224,9 @@ public class OS implements OperatingSystem {
 		proEnt.getBlockEntityList().add(bEnt);
 	}
 	
-	/*
+	/**
 	 * Process a program based on the range found in a program.
+	 * @param index
 	 */
 	private void preemptiveRoundRobinProcessing(int index) {
 		boolean isValidIndex = indexExists(proEnt.getBlockEntityList(), index);
