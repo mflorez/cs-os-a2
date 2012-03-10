@@ -76,7 +76,7 @@ public class OS implements OperatingSystem {
 			} 			
 			break;
 		case terminal:
-			System.out.println("Interrupt: terminal");
+			printLine("Interrupt: terminal");
 			break;
 		case countdown:
 			int cDownReg = simHW.fetch(Hardware.Address.countdownRegister);
@@ -115,7 +115,18 @@ public class OS implements OperatingSystem {
 			break;		
 		case SystemCall.yield:
 			this.simHW.store(0, Hardware.Status.ok);
-			
+		case SystemCall.open:
+			printLine("SystemCall: open");
+			break;
+		case SystemCall.close:
+			printLine("SystemCall: close");
+			break;
+		case SystemCall.read:
+			printLine("SystemCall: read");
+			break;
+		case SystemCall.write:
+			printLine("SystemCall: write");
+			break;
 		}
 	}
 	
@@ -226,5 +237,8 @@ public class OS implements OperatingSystem {
 		boolean isValid = (index >= 0 && index <= ls.size());
 		return isValid;
 	}
-		
+	
+	private void printLine(String msg){
+		System.out.println(msg);
+	}
 }
