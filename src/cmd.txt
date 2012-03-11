@@ -2,3 +2,4 @@ cd /export/home/class/cs-os/pa2
 mget *.java
 mget *.jar
 mget *.dsk
+mget *.tty
