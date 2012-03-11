@@ -12,13 +12,14 @@ public class OS implements OperatingSystem {
 	private DiskEntity dEnt;
 	private ProgramEntity proEnt;
 	private int blockCounter = 1;
+	private int diskBlockStartAddress = 0;
 	private boolean startPrograms;
 		
 	public int getProcessCount() {
 		return proEnt.getBlockEntityList().size();
 	}
 
-	private int countdown = 3000;	
+	private int countdown = 2000;	
 	public OS(Hardware hw) {
 		simHW = hw; // Set simulator hardware.
 		proEnt = new ProgramEntity();
@@ -42,6 +43,9 @@ public class OS implements OperatingSystem {
 			simHW.store(Hardware.Address.diskAddressRegister, Hardware.Address.userBase);
 			simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);			
 			simHW.store(Hardware.Address.PCRegister, Hardware.Address.idleStart);//Set PCRegister to prevent illegal instruction interrupt
+			
+			diskBlockStartAddress = simHW.fetch(Hardware.Address.diskAddressRegister); //One block past the index block.
+					
 			break;
 		case systemCall:
 			printLine("Interrupt: systemCall");
@@ -52,29 +56,33 @@ public class OS implements OperatingSystem {
 			simHW.store(Hardware.Address.haltRegister, 2);
 			break;			
 		case disk:
-			printLine("Interrupt: disk");
-			int programBlocks = simHW.fetch(Hardware.Address.userBase);//Find how many blocks first program occupies 
-			int nextBlockStartaddress = simHW.fetch(Hardware.Address.diskAddressRegister) + 32; //Find where to load next block
+			printLine("Interrupt: disk");			
+			// int programBlocks = simHW.fetch(Hardware.Address.userBase);//Find how many blocks first program occupies 
+			// int nextBlockStartaddress = simHW.fetch(Hardware.Address.diskAddressRegister) + 32; //Find where to load next block
+			int exeProgramsBlockCount = getExeProgsBlockCount();  // total programs block count.
 			
-			if(programBlocks == 0) //If disk is empty then halt OS
+			if(exeProgramsBlockCount == 0) //If disk is empty then halt OS
 			{
 				simHW.store(Hardware.Address.haltRegister, 2);
 			}			
-					
-			if (blockCounter < Hardware.Disk.blockCount) // Loads all of the blocks into User Space.
-			{	
+			
+			if (blockCounter < exeProgramsBlockCount) // Loads executable programs blocks into User Space in addition to index block.
+			{				
+				diskBlockStartAddress += Hardware.Disk.blockSize; // Move to the next block address.
+				printLine("Next block start address: " + diskBlockStartAddress);
+				
 				simHW.store(Hardware.Address.diskBlockRegister, blockCounter++);//Next block from disk   			
-				simHW.store(Hardware.Address.diskAddressRegister, nextBlockStartaddress);//Set address			
+				simHW.store(Hardware.Address.diskAddressRegister, diskBlockStartAddress);//Set next block start address			
 				simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage					
-				if (blockCounter == Hardware.Disk.blockCount) {
+				if (blockCounter == exeProgramsBlockCount) {
 					startPrograms = true;
+					printLine("Info: startPrograms = true");
 				}				
 				simHW.store(Hardware.Address.PCRegister, Hardware.Address.idleStart);//Set PCRegister to prevent illegal instruction interrupt
 			}		
 			
-			if (startPrograms){ // If all disks are loaded, execute the first program.
-		
-				this.createDiskEntity(); // Create the disk entity blocks.		
+			if (startPrograms){ // If all disks are loaded, execute the first program.		
+				this.createDiskEntity(); // Create the disk entity blocks.
 				
 				List<WordEntity> iEntity = dEnt.getBlockEntity(0).getWordEntityList();
 				this.queueProcessExecution(iEntity);	
@@ -99,6 +107,23 @@ public class OS implements OperatingSystem {
 	}
 
 	/**
+	 * Get the total program block count.
+	 * @return
+	 */
+	private int getExeProgsBlockCount(){
+		int blkCount = 0;		
+		for ( int i = 0; i < Hardware.Disk.blockSize; i++ ){
+			int programBlocks = simHW.fetch(Hardware.Address.userBase + i);//Find how many blocks executable programs occupy.
+			if (programBlocks != 0){
+				printLine("Block count: " + programBlocks + " IndexBlock @ index: " + i);
+				blkCount += programBlocks;
+			}						
+		}
+		printLine("Program block count: " + blkCount);
+		return blkCount;
+	}
+	
+	/**
 	 * Operating system calls.
 	 * @param sysCall
 	 */
@@ -107,14 +132,20 @@ public class OS implements OperatingSystem {
 		int indexBlock;		
 		switch (sysCall) {
 		case SystemCall.exec:
+			printLine("SystemCall: exec");
+			
 			indexAddress =  this.simHW.fetch(Hardware.Address.systemBase + 1); // Get register 1.
 			indexBlock = this.simHW.fetch(indexAddress);
 			this.preemptiveRoundRobinProcessing(indexBlock);				
 			break;
 		case SystemCall.exit:
+			printLine("SystemCall: exit");
+			
 			simHW.store(Hardware.Address.haltRegister, 2);
 			break;		
 		case SystemCall.getSlot:
+			printLine("SystemCall: getSlot");
+			
 			indexAddress =  this.simHW.fetch(1); // Get register 1.
 			indexBlock = this.simHW.fetch(indexAddress);
 			
@@ -123,21 +154,28 @@ public class OS implements OperatingSystem {
 			this.simHW.store(0, Hardware.Status.ok);			
 			break;		
 		case SystemCall.putSlot:
+			printLine("SystemCall: putSlot");
+			
 			this.simHW.store(0, Hardware.Status.ok);	
 			break;		
 		case SystemCall.yield:
+			printLine("SystemCall: yield");
+			
 			this.simHW.store(0, Hardware.Status.ok);
 		case SystemCall.open:
 			printLine("SystemCall: open");
 			break;
 		case SystemCall.close:
 			printLine("SystemCall: close");
+			
 			break;
 		case SystemCall.read:
 			printLine("SystemCall: read");
+			
 			break;
 		case SystemCall.write:
 			printLine("SystemCall: write");
+			
 			break;
 		}
 	}
@@ -164,8 +202,7 @@ public class OS implements OperatingSystem {
 			BlockEntity blkEnt = new BlockEntity();
 			blkEnt.setWordEntityList(subParts.get(i));
 			dEnt.getBlockEntityList().add(blkEnt);
-		}
-				
+		}				
 	}
 	
 	/**
