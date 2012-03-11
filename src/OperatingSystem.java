@@ -103,6 +103,9 @@ interface OperatingSystem {
 
 
 // $Log: OperatingSystem.java,v $
+// Revision 1.4  2012/03/11 04:09:19  rclayton
+// Add open, close, read, and write system calls.
+//
 // Revision 1.3  2012/02/16 19:35:53  rclayton
 // Defined OperatingSystem.SystemCall.toString().
 //

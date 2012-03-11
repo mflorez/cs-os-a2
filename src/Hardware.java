@@ -264,8 +264,11 @@ extends PrimaryStore {
 	case badAddress    : return "bad address";
 	case badBlockNumber: return "bad block number";
 	case badCommand    : return "bad command";
+	case badCount      : return "bad count";
+	case badDevice     : return "bad device";
 	case ok            : return "ok";
 	case badPid        : return "bad PID";
+	case deviceBusy    : return "device busy";
 	case noResource    : return "no resource";
 	default            : return "[Unknown status value:  " + s + "]";
         }
@@ -275,6 +278,10 @@ extends PrimaryStore {
 
 
 // $Log: Hardware.java,v $
+// Revision 1.7  2012/03/11 04:06:30  rclayton
+// Make the disk bigger; fix the terminal register names; put all the status
+// values in Status.toString().
+//
 // Revision 1.6  2012/02/29 01:34:54  rclayton
 // Up the blocks per disk.
 //
