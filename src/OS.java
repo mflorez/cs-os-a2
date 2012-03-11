@@ -44,7 +44,7 @@ public class OS implements OperatingSystem {
 			simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);			
 			simHW.store(Hardware.Address.PCRegister, Hardware.Address.idleStart);//Set PCRegister to prevent illegal instruction interrupt
 			
-			diskBlockStartAddress = simHW.fetch(Hardware.Address.diskAddressRegister); //One block past the index block.
+			diskBlockStartAddress = simHW.fetch(Hardware.Address.diskAddressRegister); // Disk start address information.
 					
 			break;
 		case systemCall:
@@ -68,7 +68,7 @@ public class OS implements OperatingSystem {
 			
 			if (blockCounter < exeProgramsBlockCount) // Loads executable programs blocks into User Space in addition to index block.
 			{				
-				diskBlockStartAddress += Hardware.Disk.blockSize; // Move to the next block address.
+				diskBlockStartAddress += Hardware.Disk.blockSize; // Move to the next block address by adding 32 words per block.
 				printLine("Next block start address: " + diskBlockStartAddress);
 				
 				simHW.store(Hardware.Address.diskBlockRegister, blockCounter++);//Next block from disk   			
@@ -115,7 +115,7 @@ public class OS implements OperatingSystem {
 		for ( int i = 0; i < Hardware.Disk.blockSize; i++ ){
 			int programBlocks = simHW.fetch(Hardware.Address.userBase + i);//Find how many blocks executable programs occupy.
 			if (programBlocks != 0){
-				printLine("Block count: " + programBlocks + " IndexBlock @ index: " + i);
+				printLine("Index block value: " + programBlocks + " @ index: " + i);
 				blkCount += programBlocks;
 			}						
 		}
