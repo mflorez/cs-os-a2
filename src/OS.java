@@ -19,7 +19,7 @@ public class OS implements OperatingSystem {
 		return proEnt.getBlockEntityList().size();
 	}
 
-	private int countdown = 2000;	
+	private int countdown = 3000;	
 	public OS(Hardware hw) {
 		simHW = hw; // Set simulator hardware.
 		proEnt = new ProgramEntity();
@@ -115,7 +115,7 @@ public class OS implements OperatingSystem {
 		for ( int i = 0; i < Hardware.Disk.blockSize; i++ ){
 			int programBlocks = simHW.fetch(Hardware.Address.userBase + i);//Find how many blocks executable programs occupy.
 			if (programBlocks != 0){
-				printLine("Index block value: " + programBlocks + " @ index: " + i);
+				// printLine("Index block value: " + programBlocks + " @ index: " + i);
 				blkCount += programBlocks;
 			}						
 		}
