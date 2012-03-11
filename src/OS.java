@@ -68,12 +68,8 @@ public class OS implements OperatingSystem {
 			
 			if (blockCounter < exeProgramsBlockCount) // Loads executable programs blocks into User Space in addition to index block.
 			{				
-				diskBlockStartAddress += Hardware.Disk.blockSize; // Move to the next block address by adding 32 words per block.
-				printLine("Next block start address: " + diskBlockStartAddress);
+				loadNextDiskBlock(); // Load the next disk block.
 				
-				simHW.store(Hardware.Address.diskBlockRegister, blockCounter++);//Next block from disk   			
-				simHW.store(Hardware.Address.diskAddressRegister, diskBlockStartAddress);//Set next block start address			
-				simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage					
 				if (blockCounter == exeProgramsBlockCount) {
 					startPrograms = true;
 					printLine("Info: startPrograms = true");
@@ -107,6 +103,18 @@ public class OS implements OperatingSystem {
 	}
 
 	/**
+	 * Loads the next disk block.
+	 */
+	private void loadNextDiskBlock(){
+		diskBlockStartAddress += Hardware.Disk.blockSize; // Move to the next block address by adding 32 words per block.
+		printLine("Next block start address: " + diskBlockStartAddress);
+		
+		simHW.store(Hardware.Address.diskBlockRegister, blockCounter++);//Next block from disk   			
+		simHW.store(Hardware.Address.diskAddressRegister, diskBlockStartAddress);//Set next block start address			
+		simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage
+	}
+	
+	/**
 	 * Get the total program block count.
 	 * @return
 	 */
@@ -133,7 +141,6 @@ public class OS implements OperatingSystem {
 		switch (sysCall) {
 		case SystemCall.exec:
 			printLine("SystemCall: exec");
-			
 			indexAddress =  this.simHW.fetch(Hardware.Address.systemBase + 1); // Get register 1.
 			indexBlock = this.simHW.fetch(indexAddress);
 			this.preemptiveRoundRobinProcessing(indexBlock);
@@ -312,6 +319,6 @@ public class OS implements OperatingSystem {
 	}
 	
 	private void printLine(String msg){
-		System.out.println(msg);
+		System.out.println(msg);		
 	}
 }
