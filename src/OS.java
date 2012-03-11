@@ -136,7 +136,11 @@ public class OS implements OperatingSystem {
 			
 			indexAddress =  this.simHW.fetch(Hardware.Address.systemBase + 1); // Get register 1.
 			indexBlock = this.simHW.fetch(indexAddress);
-			this.preemptiveRoundRobinProcessing(indexBlock);				
+			this.preemptiveRoundRobinProcessing(indexBlock);
+			
+			printLine("indexAddress: " + indexAddress);
+			printLine("indexBlock: " + indexBlock);
+			
 			break;
 		case SystemCall.exit:
 			printLine("SystemCall: exit");
@@ -276,9 +280,17 @@ public class OS implements OperatingSystem {
 	private void preemptiveRoundRobinProcessing(int index) {
 		boolean isValidIndex = indexExists(proEnt.getBlockEntityList(), index);
 		if (isValidIndex){
+			
+			printLine("Program Index: " + index);
+			
 			int pCRegister = proEnt.getBlockEntityList().get(index).getPCRegister();
 			int baseRegister = proEnt.getBlockEntityList().get(index).getBaseRegister();
 			int topRegister = proEnt.getBlockEntityList().get(index).getTopRegister();
+			
+			printLine("pCRegister: " + pCRegister);
+			printLine("baseRegister: " + baseRegister);
+			printLine("topRegister: " + topRegister);
+			
 			this.simHW.store(Hardware.Address.PCRegister, pCRegister); // Address of the next program to execute.
 			this.simHW.store(Hardware.Address.baseRegister, baseRegister); // Lowest legal address accessible to the current running process.
 			this.simHW.store(Hardware.Address.topRegister, topRegister); // One more than the highest legal address.
