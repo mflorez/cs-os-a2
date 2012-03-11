@@ -222,7 +222,7 @@ public class OS implements OperatingSystem {
 	 * @param L
 	 * @return
 	 */
-	static <T> List<List<T>> createBlockList(List<T> list, final int L) {
+	private static <T> List<List<T>> createBlockList(List<T> list, final int L) {
 		List<List<T>> parts = new ArrayList<List<T>>();
 		final int N = list.size();
 		for (int i = 0; i < N; i += L) {
