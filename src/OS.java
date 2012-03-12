@@ -169,8 +169,7 @@ public class OS implements OperatingSystem {
 			printLine("SystemCall: yield");			
 			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
 		case SystemCall.open:
-			printLine("SystemCall: open");					
-			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
+			printLine("SystemCall: open");			
 			executeDeviceTypeCall();			
 			break;
 		case SystemCall.close:
