@@ -38,10 +38,9 @@ public class OS implements OperatingSystem {
 		case reboot:
 			printLine("Interrupt: reboot");
 			// Load the disk to primary store one block at the time.			
-//			simHW.store(Hardware.Address.diskBlockRegister, blockCounter++);
-//			simHW.store(Hardware.Address.diskAddressRegister, Hardware.Address.userBase);
-//			simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);
-			loadNextDiskBlock();
+			simHW.store(Hardware.Address.diskBlockRegister, blockCounter++);
+			simHW.store(Hardware.Address.diskAddressRegister, Hardware.Address.userBase);
+			simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);
 			simHW.store(Hardware.Address.PCRegister, Hardware.Address.idleStart);//Set PCRegister to prevent illegal instruction interrupt
 			break;
 		case systemCall:
@@ -122,10 +121,6 @@ public class OS implements OperatingSystem {
 	 * Loads the next disk block.
 	 */
 	private void loadNextDiskBlock(){
-//		simHW.store(Hardware.Address.diskBlockRegister, blockCounter++);
-//		simHW.store(Hardware.Address.diskAddressRegister, Hardware.Address.userBase);
-//		simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);
-		
 		int nextBlockStartaddress = simHW.fetch(Hardware.Address.diskAddressRegister) + 32; //Find where to load next block
 		printLine("simHW.fetch(Hardware.Address.diskAddressRegister) + 32 : " + nextBlockStartaddress);
 		
