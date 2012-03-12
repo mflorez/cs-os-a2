@@ -140,7 +140,7 @@ public class OS implements OperatingSystem {
 		int indexBlock;		
 		switch (sysCall) {
 		case SystemCall.exec:
-			printLine("SystemCall: exec");
+			printLine("SystemCall: exec");			
 			indexAddress =  this.simHW.fetch(Hardware.Address.systemBase + 1); // Get register 1.
 			indexBlock = this.simHW.fetch(indexAddress);
 			this.preemptiveRoundRobinProcessing(indexBlock);
