@@ -236,24 +236,36 @@ public class OS implements OperatingSystem {
 	 * @param nBlock
 	 */
 	private void queueProcessExecution(List<WordEntity> iBlock){
-		
-		int programIndexBlock = 0;
-		int currentProcessFirstBlock = 1; // Go past program index block.		
+		int currentProcessFirstBlock = 0;			
 		for (int i = 0; i < iBlock.size(); i++){
-			int addr = iBlock.get(i).getWordAddress();
-			int processBlockCount = this.simHW.fetch(addr); // Get the block count for the first program.
-			if (processBlockCount != 0) {
-				int currentProcessLastBlock = processBlockCount + programIndexBlock; // The last block for current program.  One past the index block.
-				int processStartBlockAddress = dEnt.getBlockEntityList().get(currentProcessFirstBlock).getWordEntityList().get(0).getWordAddress(); // First block for the process.
-				int processEndBlockAddress = dEnt.getBlockEntityList().get(currentProcessLastBlock).getWordEntityList().get(31).getWordAddress(); // Last block for the process.
+			int proAddr = iBlock.get(i).getWordAddress(); // Block count for the first program.
+			int proBlock = this.simHW.fetch(proAddr); // Get the block count for the first program.						
+			if (proBlock != 0) {
+				int firstBlk = currentProcessFirstBlock + 1;
+				int processStartBlockAddress = dEnt.getBlockEntityList().get(firstBlk).getWordEntityList().get(0).getWordAddress(); // First block for the process.
+				int lastBlk = currentProcessFirstBlock + proBlock;
+				int processEndBlockAddress = dEnt.getBlockEntityList().get(lastBlk).getWordEntityList().get(31).getWordAddress(); // Last block for the process.
+				
+				printLine("proBlock: " + proBlock);
+				printLine("firstBlk: " + firstBlk);
+				printLine("lastBlk: " + lastBlk);				
+				printLine("");
 							
 				int pCRegister = processStartBlockAddress;
-				int baseRegister = processStartBlockAddress ;
+				int baseRegister = processStartBlockAddress;
 				int topRegister = processEndBlockAddress + 1;
+								
+				printLine("queueProcessExecution.pCRegister: " + pCRegister);
+				printLine("queueProcessExecution.baseRegister: " + baseRegister);
+				printLine("queueProcessExecution.topRegister: " + topRegister);
+				printLine("");
 				
 				// Set the program block list to allow to iterate using a preemptive round robin scheduling scheme base on a count down.
-				this.setProgramBlockList(processStartBlockAddress, processBlockCount, pCRegister, baseRegister, topRegister);
-				currentProcessFirstBlock += processBlockCount; // Update the program start to the next block after the current process last block.
+				this.setProgramBlockList(processStartBlockAddress, proBlock, pCRegister, baseRegister, topRegister);
+								
+				currentProcessFirstBlock += proBlock; // Update the program start to the next block after the current process last block.								
+				printLine("currentProcessFirstBlock += proBlock: " + currentProcessFirstBlock);				
+				printLine("");
 			}			
 		}				
 	}
