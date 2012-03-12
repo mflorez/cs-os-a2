@@ -187,9 +187,9 @@ public class OS implements OperatingSystem {
 	}
 	
 	private void executeDeviceReadCall() {
-		int deviceID; // 1 is device, 3 is terminal.
+		int connectionID; // 1 is device, 3 is terminal.
 		this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
-		deviceID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
+		connectionID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
 		
 		int writeFromAddres = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
 		printLine("writeFromAddres: Word 2: " + writeFromAddres);
@@ -197,17 +197,17 @@ public class OS implements OperatingSystem {
 		int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
 		printLine("nValue: Word 3: " + nValue);
 				
-		if (deviceID == Hardware.Disk.device){
-			printLine("Disk deviceID: Word 1: " + deviceID);
-		} else if (deviceID == Hardware.Terminal.device) {
-			printLine("Terminal deviceID: Word 1: " + deviceID);
+		if (connectionID == Hardware.Disk.device){
+			printLine("Disk deviceID: Word 1: " + connectionID);
+		} else if (connectionID == Hardware.Terminal.device) {
+			printLine("Terminal deviceID: Word 1: " + connectionID);
 		}	
 	}
 	
 	private void executeDeviceWriteCall() {
-		int deviceID; // 1 is device, 3 is terminal.
+		int connectionID; // 1 is device, 3 is terminal.
 		this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
-		deviceID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
+		connectionID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
 		
 		int writeFromAddres = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
 		printLine("writeFromAddres: Word 2: " + writeFromAddres);
@@ -215,10 +215,10 @@ public class OS implements OperatingSystem {
 		int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
 		printLine("nValue: Word 3: " + nValue);
 				
-		if (deviceID == Hardware.Disk.device){
-			printLine("Disk deviceID: Word 1: " + deviceID);
-		} else if (deviceID == Hardware.Terminal.device) {
-			printLine("Terminal deviceID: Word 1: " + deviceID);
+		if (connectionID == Hardware.Disk.device){
+			printLine("Disk deviceID: Word 1: " + connectionID);
+		} else if (connectionID == Hardware.Terminal.device) {
+			printLine("Terminal deviceID: Word 1: " + connectionID);
 		}		
 	}
 	
