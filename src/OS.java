@@ -11,8 +11,7 @@ public class OS implements OperatingSystem {
 	private Hardware simHW;
 	private DiskEntity dEnt;
 	private ProgramEntity proEnt;
-	private int blockCounter = 1;
-	private int diskBlockStartAddress = 0;
+	private int blockCounter = 0;
 	private boolean startPrograms;
 		
 	public int getProcessCount() {
@@ -39,13 +38,11 @@ public class OS implements OperatingSystem {
 		case reboot:
 			printLine("Interrupt: reboot");
 			// Load the disk to primary store one block at the time.			
-			simHW.store(Hardware.Address.diskBlockRegister, 0);
-			simHW.store(Hardware.Address.diskAddressRegister, Hardware.Address.userBase);
-			simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);			
+//			simHW.store(Hardware.Address.diskBlockRegister, blockCounter++);
+//			simHW.store(Hardware.Address.diskAddressRegister, Hardware.Address.userBase);
+//			simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);
+			loadNextDiskBlock();
 			simHW.store(Hardware.Address.PCRegister, Hardware.Address.idleStart);//Set PCRegister to prevent illegal instruction interrupt
-			
-			diskBlockStartAddress = simHW.fetch(Hardware.Address.diskAddressRegister); // Disk start address information.
-					
 			break;
 		case systemCall:
 			printLine("Interrupt: systemCall");
@@ -57,44 +54,42 @@ public class OS implements OperatingSystem {
 			break;			
 		case disk:
 			printLine("Interrupt: disk");			
-//			// int programBlocks = simHW.fetch(Hardware.Address.userBase);//Find how many blocks first program occupies 
-//			// int nextBlockStartaddress = simHW.fetch(Hardware.Address.diskAddressRegister) + 32; //Find where to load next block
-//			int exeProgramsBlockCount = getExeProgsBlockCount();  // total programs block count.
-//			
-//			if(exeProgramsBlockCount == 0) //If disk is empty then halt OS
-//			{
-//				simHW.store(Hardware.Address.haltRegister, 2);
-//			}			
-//			
-//			if (blockCounter < exeProgramsBlockCount) // Loads executable programs blocks into User Space in addition to index block.
-//			{				
-//				loadNextDiskBlock(); // Load the next disk block.
-//				
-//				if (blockCounter == exeProgramsBlockCount) {
-//					startPrograms = true;
-//					printLine("Info: startPrograms = true");
-//				}				
-//				simHW.store(Hardware.Address.PCRegister, Hardware.Address.idleStart);//Set PCRegister to prevent illegal instruction interrupt
-//			}		
+			int exeProgramsBlockCount = getExeProgsBlockCount();  // total programs block count.
 			
-			int programBlocks = simHW.fetch(Hardware.Address.userBase);//Find how many blocks first program occupies 
-			int nextBlockStartaddress = simHW.fetch(Hardware.Address.diskAddressRegister) + 32; //Find where to load next block
-			
-			if(programBlocks == 0) //If disk is empty then halt OS
+			if(exeProgramsBlockCount == 0) //If disk is empty then halt OS
 			{
 				simHW.store(Hardware.Address.haltRegister, 2);
 			}			
-					
-			if (blockCounter < Hardware.Disk.blockCount) // Loads all of the blocks into User Space.
-			{	
-				simHW.store(Hardware.Address.diskBlockRegister, blockCounter++);//Next block from disk   			
-				simHW.store(Hardware.Address.diskAddressRegister, nextBlockStartaddress);//Set address			
-				simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage					
-				if (blockCounter == 32) {
+			
+			if (blockCounter < exeProgramsBlockCount) // Loads executable programs blocks into User Space in addition to index block.
+			{				
+				loadNextDiskBlock(); // Load the next disk block.
+				
+				if (blockCounter == exeProgramsBlockCount) {
 					startPrograms = true;
+					printLine("Info: startPrograms = true");
 				}				
 				simHW.store(Hardware.Address.PCRegister, Hardware.Address.idleStart);//Set PCRegister to prevent illegal instruction interrupt
 			}		
+			
+//			int programBlocks = simHW.fetch(Hardware.Address.userBase);//Find how many blocks first program occupies 
+//			int nextBlockStartaddress = simHW.fetch(Hardware.Address.diskAddressRegister) + 32; //Find where to load next block
+//			
+//			if(programBlocks == 0) //If disk is empty then halt OS
+//			{
+//				simHW.store(Hardware.Address.haltRegister, 2);
+//			}			
+//					
+//			if (blockCounter < Hardware.Disk.blockCount) // Loads all of the blocks into User Space.
+//			{	
+//				simHW.store(Hardware.Address.diskBlockRegister, blockCounter++);//Next block from disk   			
+//				simHW.store(Hardware.Address.diskAddressRegister, nextBlockStartaddress);//Set address			
+//				simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage					
+//				if (blockCounter == 32) {
+//					startPrograms = true;
+//				}				
+//				simHW.store(Hardware.Address.PCRegister, Hardware.Address.idleStart);//Set PCRegister to prevent illegal instruction interrupt
+//			}		
 			
 			if (startPrograms){ // If all disks are loaded, execute the first program.		
 				this.createDiskEntity(); // Create the disk entity blocks.
@@ -127,11 +122,11 @@ public class OS implements OperatingSystem {
 	 * Loads the next disk block.
 	 */
 	private void loadNextDiskBlock(){
-		diskBlockStartAddress += Hardware.Disk.blockSize; // Move to the next block address by adding 32 words per block.
-		printLine("Next block start address: " + diskBlockStartAddress);
+		int nextBlockStartaddress = simHW.fetch(Hardware.Address.diskAddressRegister) + 32; //Find where to load next block
+		printLine("simHW.fetch(Hardware.Address.diskAddressRegister) + 32 : " + nextBlockStartaddress);
 		
 		simHW.store(Hardware.Address.diskBlockRegister, blockCounter++);//Next block from disk   			
-		simHW.store(Hardware.Address.diskAddressRegister, diskBlockStartAddress);//Set next block start address			
+		simHW.store(Hardware.Address.diskAddressRegister, nextBlockStartaddress);//Set next block start address			
 		simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage
 	}
 	
