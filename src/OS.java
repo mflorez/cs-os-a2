@@ -60,11 +60,12 @@ public class OS implements OperatingSystem {
 				simHW.store(Hardware.Address.haltRegister, 2);
 			}			
 			
-			if (blockCounter < 10) // Loads executable programs blocks into User Space in addition to index block.
+			int loadBlockCount = exeProgramsBlockCount + 2; // Load the indexBlock and the one more past the last (2 extra blocks).
+			if (blockCounter < loadBlockCount) // Loads executable programs blocks into User Space in addition to index block.
 			{				
 				loadNextDiskBlock(); // Load the next disk block.
 				
-				if (blockCounter == 10) {
+				if (blockCounter == loadBlockCount) {
 					startPrograms = true;
 					printLine("Info: startPrograms = true");
 				}				
