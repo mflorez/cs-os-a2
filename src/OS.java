@@ -70,26 +70,7 @@ public class OS implements OperatingSystem {
 					printLine("Info: startPrograms = true");
 				}				
 				simHW.store(Hardware.Address.PCRegister, Hardware.Address.idleStart);//Set PCRegister to prevent illegal instruction interrupt
-			}		
-			
-//			int programBlocks = simHW.fetch(Hardware.Address.userBase);//Find how many blocks first program occupies 
-//			int nextBlockStartaddress = simHW.fetch(Hardware.Address.diskAddressRegister) + 32; //Find where to load next block
-//			
-//			if(programBlocks == 0) //If disk is empty then halt OS
-//			{
-//				simHW.store(Hardware.Address.haltRegister, 2);
-//			}			
-//					
-//			if (blockCounter < Hardware.Disk.blockCount) // Loads all of the blocks into User Space.
-//			{	
-//				simHW.store(Hardware.Address.diskBlockRegister, blockCounter++);//Next block from disk   			
-//				simHW.store(Hardware.Address.diskAddressRegister, nextBlockStartaddress);//Set address			
-//				simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage					
-//				if (blockCounter == 32) {
-//					startPrograms = true;
-//				}				
-//				simHW.store(Hardware.Address.PCRegister, Hardware.Address.idleStart);//Set PCRegister to prevent illegal instruction interrupt
-//			}		
+			}
 			
 			if (startPrograms){ // If all disks are loaded, execute the first program.		
 				this.createDiskEntity(); // Create the disk entity blocks.
