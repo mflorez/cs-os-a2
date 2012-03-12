@@ -84,6 +84,10 @@ public class OS implements OperatingSystem {
 				this.queueProcessExecution(iEntity);	
 				simHW.store(Hardware.Address.countdownRegister, countdown); // Set a timer to start program execution.
 				
+				printLine("First program started...");
+				int proIndex = 0; // Call the first program.
+				preemptiveRoundRobinProcessing(proIndex); // Implements Round Robin.  It starts processing preemptively based on the next on the list and the count down timer.
+								
 				startPrograms = false;				
 			} 			
 			break;
@@ -96,8 +100,6 @@ public class OS implements OperatingSystem {
 				this.simHW.store(Hardware.Address.countdownRegister, countdown); // set a new count down to keep system from hanging.
 				simHW.store(Hardware.Address.PCRegister, Hardware.Address.idleStart);//Set PCRegister to prevent illegal instruction interrupt
 			}
-			int proIndex = 0; // Call the first program.
-			preemptiveRoundRobinProcessing(proIndex); // Implements Round Robin.  It starts processing preemptively based on the next on the list and the count down timer.
 			break;
 		}
 	}
