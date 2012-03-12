@@ -122,6 +122,10 @@ public class OS implements OperatingSystem {
 	 * Loads the next disk block.
 	 */
 	private void loadNextDiskBlock(){
+//		simHW.store(Hardware.Address.diskBlockRegister, blockCounter++);
+//		simHW.store(Hardware.Address.diskAddressRegister, Hardware.Address.userBase);
+//		simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);
+		
 		int nextBlockStartaddress = simHW.fetch(Hardware.Address.diskAddressRegister) + 32; //Find where to load next block
 		printLine("simHW.fetch(Hardware.Address.diskAddressRegister) + 32 : " + nextBlockStartaddress);
 		
