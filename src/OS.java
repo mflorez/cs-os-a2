@@ -245,12 +245,7 @@ public class OS implements OperatingSystem {
 				int processStartBlockAddress = dEnt.getBlockEntityList().get(firstBlk).getWordEntityList().get(0).getWordAddress(); // First block for the process.
 				int lastBlk = currentProcessFirstBlock + proBlock;
 				int processEndBlockAddress = dEnt.getBlockEntityList().get(lastBlk).getWordEntityList().get(31).getWordAddress(); // Last block for the process.
-				
-				printLine("proBlock: " + proBlock);
-				printLine("firstBlk: " + firstBlk);
-				printLine("lastBlk: " + lastBlk);				
-				printLine("");
-							
+											
 				int pCRegister = processStartBlockAddress;
 				int baseRegister = processStartBlockAddress;
 				int topRegister = processEndBlockAddress + 1;
@@ -263,9 +258,7 @@ public class OS implements OperatingSystem {
 				// Set the program block list to allow to iterate using a preemptive round robin scheduling scheme base on a count down.
 				this.setProgramBlockList(processStartBlockAddress, proBlock, pCRegister, baseRegister, topRegister);
 								
-				currentProcessFirstBlock += proBlock; // Update the program start to the next block after the current process last block.								
-				printLine("currentProcessFirstBlock += proBlock: " + currentProcessFirstBlock);				
-				printLine("");
+				currentProcessFirstBlock += proBlock; // Update the program start to the next block after the current process last block.				
 			}			
 		}				
 	}
