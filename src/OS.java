@@ -170,10 +170,10 @@ public class OS implements OperatingSystem {
 			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
 		case SystemCall.open:
 			printLine("SystemCall: open");			
-			executeDeviceTypeCall();			
+			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);			
 			break;
 		case SystemCall.close:
-			printLine("SystemCall: close");
+			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
 			executeDeviceTypeCall();		
 			break;
 		case SystemCall.read:
