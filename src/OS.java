@@ -245,10 +245,24 @@ public class OS implements OperatingSystem {
 				int processStartBlockAddress = dEnt.getBlockEntityList().get(firstBlk).getWordEntityList().get(0).getWordAddress(); // First block for the process.
 				int lastBlk = currentProcessFirstBlock + proBlock;
 				int processEndBlockAddress = dEnt.getBlockEntityList().get(lastBlk).getWordEntityList().get(31).getWordAddress(); // Last block for the process.
-											
-				int pCRegister = processStartBlockAddress;
-				int baseRegister = processStartBlockAddress;
+				
+				/*
+				 *  The hardware interprets the contents of the Base Register 
+				 *  as the lowest legal address accessible to the currently running process.
+				 */
+				int baseRegister = processStartBlockAddress;  
+				
+				/*
+				 * The hardware interprets the contents of the Top Register 
+				 * as one more than the highest legal address accessible to the currently running process.
+				 */
 				int topRegister = processEndBlockAddress + 1;
+				
+				/*
+				 *  The hardware interprets the contents of the Program Counter Register 
+				 *  as the address of the next instruction to execute.
+				 */
+				int pCRegister = processStartBlockAddress;  
 								
 				printLine("queueProcessExecution.pCRegister: " + pCRegister);
 				printLine("queueProcessExecution.baseRegister: " + baseRegister);
