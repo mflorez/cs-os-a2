@@ -18,7 +18,7 @@ public class OS implements OperatingSystem {
 		return proEnt.getBlockEntityList().size();
 	}
 
-	private int countdown = 3000;	
+	private int countdown = 10000;	
 	public OS(Hardware hw) {
 		simHW = hw; // Set simulator hardware.
 		proEnt = new ProgramEntity();
@@ -159,31 +159,32 @@ public class OS implements OperatingSystem {
 			
 			this.simHW.store(1, indexAddress);
 			this.simHW.store(2, indexBlock);
-			this.simHW.store(0, Hardware.Status.ok);			
+			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);			
 			break;		
 		case SystemCall.putSlot:
 			printLine("SystemCall: putSlot");
 			
-			this.simHW.store(0, Hardware.Status.ok);	
+			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);	
 			break;		
 		case SystemCall.yield:
 			printLine("SystemCall: yield");
 			
-			this.simHW.store(0, Hardware.Status.ok);
+			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
 		case SystemCall.open:
 			printLine("SystemCall: open");
+			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
 			break;
 		case SystemCall.close:
 			printLine("SystemCall: close");
-			
+			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
 			break;
 		case SystemCall.read:
 			printLine("SystemCall: read");
-			
+			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
 			break;
 		case SystemCall.write:
 			printLine("SystemCall: write");
-			
+			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
 			break;
 		}
 	}
