@@ -60,11 +60,11 @@ public class OS implements OperatingSystem {
 				simHW.store(Hardware.Address.haltRegister, 2);
 			}			
 			
-			if (blockCounter < exeProgramsBlockCount) // Loads executable programs blocks into User Space in addition to index block.
+			if (blockCounter < 10) // Loads executable programs blocks into User Space in addition to index block.
 			{				
 				loadNextDiskBlock(); // Load the next disk block.
 				
-				if (blockCounter == exeProgramsBlockCount) {
+				if (blockCounter == 10) {
 					startPrograms = true;
 					printLine("Info: startPrograms = true");
 				}				
@@ -122,7 +122,7 @@ public class OS implements OperatingSystem {
 	 */
 	private void loadNextDiskBlock(){
 		int nextBlockStartaddress = simHW.fetch(Hardware.Address.diskAddressRegister) + 32; //Find where to load next block
-		printLine("simHW.fetch(Hardware.Address.diskAddressRegister) + 32 : " + nextBlockStartaddress);
+		// printLine("simHW.fetch(Hardware.Address.diskAddressRegister) + 32 : " + nextBlockStartaddress);
 		
 		simHW.store(Hardware.Address.diskBlockRegister, blockCounter++);//Next block from disk   			
 		simHW.store(Hardware.Address.diskAddressRegister, nextBlockStartaddress);//Set next block start address			
@@ -142,7 +142,7 @@ public class OS implements OperatingSystem {
 				blkCount += programBlocks;
 			}						
 		}
-		printLine("Program block count: " + blkCount);
+		//printLine("Program block count: " + blkCount);
 		return blkCount;
 	}
 	
