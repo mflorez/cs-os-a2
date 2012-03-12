@@ -157,39 +157,56 @@ public class OS implements OperatingSystem {
 			indexAddress =  this.simHW.fetch(1); // Get register 1.
 			indexBlock = this.simHW.fetch(indexAddress);
 			
-			this.simHW.store(1, indexAddress);
-			this.simHW.store(2, indexBlock);
+			this.simHW.store(Hardware.Address.systemBase + 1, indexAddress);
+			this.simHW.store(Hardware.Address.systemBase + 2, indexBlock);
 			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);			
 			break;		
 		case SystemCall.putSlot:
-			printLine("SystemCall: putSlot");
-			
+			printLine("SystemCall: putSlot");			
 			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);	
 			break;		
 		case SystemCall.yield:
-			printLine("SystemCall: yield");
-			
+			printLine("SystemCall: yield");			
 			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
 		case SystemCall.open:
-			printLine("SystemCall: open");
+			printLine("SystemCall: open");					
 			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
+			executeDeviceTypeCall();			
 			break;
 		case SystemCall.close:
 			printLine("SystemCall: close");
-			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
+			executeDeviceTypeCall();		
 			break;
 		case SystemCall.read:
 			printLine("SystemCall: read");
-			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
+			executeDeviceTypeCall();	
 			break;
 		case SystemCall.write:
 			printLine("SystemCall: write");
+			executeDeviceTypeCall();
+		
+			int writeFromAddres = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
+			printLine("writeFromAddres: Word 2: " + writeFromAddres);
+			
+			int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
+			printLine("nValue: Word 3: " + nValue);
+			
 			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
 			break;
 		}
 	}
 	
-		
+	private void executeDeviceTypeCall(){
+		int deviceID; // 1 is device, 3 is terminal.
+		this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
+		deviceID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
+		if (deviceID == Hardware.Disk.device){
+			printLine("Disk deviceID: Word 1: " + deviceID);
+		} else if (deviceID == Hardware.Terminal.device) {
+			printLine("Terminal deviceID: Word 1: " + deviceID);
+		}	
+	}
+	
 	/**
 	 * Creates the disk blocks to reference for referencing program block information
 	 */
