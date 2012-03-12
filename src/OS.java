@@ -186,7 +186,7 @@ public class OS implements OperatingSystem {
 		}
 	}
 	
-	private void executeDeviceReadCall(){
+	private void executeDeviceReadCall() {
 		int deviceID; // 1 is device, 3 is terminal.
 		this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
 		deviceID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
@@ -204,7 +204,7 @@ public class OS implements OperatingSystem {
 		}	
 	}
 	
-	private void executeDeviceWriteCall(){
+	private void executeDeviceWriteCall() {
 		int deviceID; // 1 is device, 3 is terminal.
 		this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
 		deviceID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
