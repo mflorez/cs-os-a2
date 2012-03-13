@@ -101,7 +101,7 @@ public class OS implements OperatingSystem {
 				printLine("Terminal: Hardware.Status.ok");				
 				
 				this.simHW.store(Hardware.Address.terminalDataRegister, terminalData);
-				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);
+				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);											
 				
 			} else if (status == Hardware.Status.badCommand)
 			{
