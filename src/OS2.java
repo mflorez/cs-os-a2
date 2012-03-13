@@ -12,7 +12,7 @@ public class OS2 implements OperatingSystem {
 	private DiskEntity dEnt;
 	private ProgramEntity proEnt;
 	private int blockCounter = 0;
-	private boolean startPrograms;
+	private boolean startPrograms;	
 		
 	public int getProcessCount() {
 		return proEnt.getBlockEntityList().size();
@@ -68,7 +68,8 @@ public class OS2 implements OperatingSystem {
 				if (blockCounter == loadBlockCount) {
 					startPrograms = true;
 					printLine("Info: startPrograms = true");
-				}				
+				}
+				
 				simHW.store(Hardware.Address.PCRegister, Hardware.Address.idleStart);//Set PCRegister to prevent illegal instruction interrupt
 			}
 			
@@ -84,18 +85,36 @@ public class OS2 implements OperatingSystem {
 				preemptiveRoundRobinProcessing(proIndex); // Implements Round Robin.  It starts processing preemptively based on the next on the list and the count down timer.
 								
 				startPrograms = false;				
-			} 			
+			}			
 			break;
-		
 		case terminal:
 			printLine("Interrupt: terminal");
 			
-			int data = this.simHW.fetch(Hardware.Address.terminalDataRegister);
+			//1
+			int data = this.simHW.fetch(Hardware.Address.terminalDataRegister); 
+			printLine("Data: " + data);
+			this.simHW.store(Hardware.Address.terminalDataRegister,  Hardware.Terminal.readCommand);
+		
+			//2
+			data = this.simHW.fetch(Hardware.Address.terminalDataRegister); 
 			printLine("Data: " + data);
 			
-			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);		
+			//3
+			this.simHW.store(Hardware.Address.terminalDataRegister, data); 
+			data = this.simHW.fetch(Hardware.Address.terminalDataRegister); 
+			printLine("Data: " + data);
 			
+			//4
+			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);				
+			data = this.simHW.fetch(Hardware.Address.terminalDataRegister); 
+			printLine("Data: " + data);
 			
+			if (data == Hardware.Terminal.eosCharacter)
+			{
+				printLine("Hardware.Terminal.eosCharacter");
+				
+			}
+						
 			int status = this.simHW.fetch(Hardware.Address.terminalStatusRegister);
 			if(status == Hardware.Status.ok)
 			{
@@ -106,6 +125,7 @@ public class OS2 implements OperatingSystem {
 			{
 				printLine("Hardware.Status.badCommand");
 			}
+
 
 			
 			break;
@@ -128,7 +148,7 @@ public class OS2 implements OperatingSystem {
 		
 		simHW.store(Hardware.Address.diskBlockRegister, blockCounter++);//Next block from disk   			
 		simHW.store(Hardware.Address.diskAddressRegister, nextBlockStartaddress);//Set next block start address			
-		simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage
+		simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage		
 	}	
 	
 	/**
@@ -139,7 +159,7 @@ public class OS2 implements OperatingSystem {
 	private void readRequestedDiskBlock(int blockNumber, int blockAddress){
 		simHW.store(Hardware.Address.diskBlockRegister, blockNumber);//Next block from disk   			
 		simHW.store(Hardware.Address.diskAddressRegister, blockAddress);//Set next block start address			
-		simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage
+		simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.writeCommand);//Read from disk to primary storage
 	}
 	
 	/**
@@ -150,7 +170,7 @@ public class OS2 implements OperatingSystem {
 	private void writeRequestedDiskBlock(int blockNumber, int blockAddress){
 		simHW.store(Hardware.Address.diskBlockRegister, blockNumber);//Next block from disk   			
 		simHW.store(Hardware.Address.diskAddressRegister, blockAddress);//Set next block start address			
-		simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.writeCommand);//Read from disk to primary storage
+		simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage
 	}
 	
 	/**
@@ -217,72 +237,81 @@ public class OS2 implements OperatingSystem {
 		case SystemCall.close:
 			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);				
 			break;
-			
 		case SystemCall.read:
-			printLine("SystemCall: read");
-			executeDeviceReadCall();	
+			printLine("SystemCall: read");			
+			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
+			executeDeviceReadCall();			
 			break;
-			
 		case SystemCall.write:
 			printLine("SystemCall: write");
-			executeDeviceWriteCall();			
+			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
+			executeDeviceWriteCall();						
 			break;
 		}
 	}
 	
 	private void executeDeviceReadCall() {
-		int connectionID; // 1 is device, 3 is terminal.
-		this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
+		int connectionID; // 1 is device, 3 is terminal.		
 		connectionID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
 		
-		int readToAddres = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
-		printLine("writeFromAddres: Word 2: " + readToAddres);
+		int readToAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
+		printLine("writeFromAddres: Word 2: " + readToAddress);
 		
 		int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
 		printLine("nValue: Word 3: " + nValue);
 				
 		if (connectionID == Hardware.Disk.device){
 			printLine("Disk deviceID: Word 1: " + connectionID);
-			if (nValue >= 0 && nValue <= Hardware.Disk.blockCount) {
-				readRequestedDiskBlock(nValue, readToAddres);
-			} else {
-				// Block is not valid. "should cause a bad block-number error.
-			}				 
-			
+			readRequestedDiskBlock(nValue, readToAddress);			
 		} else if (connectionID == Hardware.Terminal.device) {
-			
 			printLine("Terminal read call");
-		
 			
-			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);			
+			int rValue = this.simHW.fetch(1);
+			printLine("rValue: " + rValue);
+			
+			//1
+			int data = this.simHW.fetch(Hardware.Address.terminalDataRegister); 
+			printLine("Data: " + data);
+			this.simHW.store(Hardware.Address.terminalDataRegister,  Hardware.Terminal.readCommand);
+		
+			//2
+			data = this.simHW.fetch(Hardware.Address.terminalDataRegister); 
+			printLine("Data: " + data);
+			
+			//3
+			this.simHW.store(Hardware.Address.terminalDataRegister, data); 
+			data = this.simHW.fetch(Hardware.Address.terminalDataRegister); 
+			printLine("Data: " + data);
+			
+			//4
+			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);				
+			data = this.simHW.fetch(Hardware.Address.terminalDataRegister); 
+			printLine("Data: " + data);
+			
+		//this.simHW.store(Hardware.Address.terminalCommandRegister,  data);
+						
+			
 			
 			printLine("Terminal deviceID: Word 1: " + connectionID);
 		}	
 	}
 	
 	private void executeDeviceWriteCall() {
-		int connectionID; // 1 is device, 3 is terminal.
-		this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
+		int connectionID; // 1 is device, 3 is terminal.		
 		connectionID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
 		
-		int writeFromAddres = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
-		printLine("writeFromAddres: Word 2: " + writeFromAddres);
+		int writeFromAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
+		printLine("writeFromAddres: Word 2: " + writeFromAddress);
 		
 		int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
 		printLine("nValue: Word 3: " + nValue);
-		
+				
 		if (connectionID == Hardware.Disk.device){
 			printLine("Disk deviceID: Word 1: " + connectionID);
-			if (nValue >= 0 && nValue <= Hardware.Disk.blockCount) {
-				writeRequestedDiskBlock(nValue, writeFromAddres);			
-			} else {
-				// Block is not valid. "should cause a bad block-number error.
-			}
+			writeRequestedDiskBlock(nValue, writeFromAddress);
 		} else if (connectionID == Hardware.Terminal.device) {
-			printLine("Terminal write call");
-			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);
-		}
-		
+			printLine("Terminal deviceID: Word 1: " + connectionID);
+		}				
 	}
 	
 	/**
