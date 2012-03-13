@@ -90,7 +90,7 @@ public class OS implements OperatingSystem {
 			break;
 		case terminal:
 			printLine("Interrupt: terminal");
-	
+						
 			int data = this.simHW.fetch(Hardware.Address.terminalDataRegister);
 			printLine("Data: " + data);
 						
@@ -155,6 +155,7 @@ public class OS implements OperatingSystem {
 	}
 	
 	private void writeCommandTerminalValue(int charCount) {
+		
 		this.simHW.store(Hardware.Address.terminalDataRegister, charCount);
 		this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);
 	}
