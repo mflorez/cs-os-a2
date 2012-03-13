@@ -117,7 +117,7 @@ public class OS implements OperatingSystem {
 	 * @param blockNumber
 	 * @param blockAddress
 	 */
-	private void readRequestedDiskBlock(int blockNumber, int blockAddress){
+	private void writeCommandDiskBlock(int blockNumber, int blockAddress){
 		simHW.store(Hardware.Address.diskBlockRegister, blockNumber);//Next block from disk   			
 		simHW.store(Hardware.Address.diskAddressRegister, blockAddress);//Set next block start address			
 		simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.writeCommand);//Read from disk to primary storage
@@ -128,7 +128,7 @@ public class OS implements OperatingSystem {
 	 * @param blockNumber
 	 * @param blockAddress
 	 */
-	private void writeRequestedDiskBlock(int blockNumber, int blockAddress){
+	private void readCommandDiskBlock(int blockNumber, int blockAddress){
 		simHW.store(Hardware.Address.diskBlockRegister, blockNumber);//Next block from disk   			
 		simHW.store(Hardware.Address.diskAddressRegister, blockAddress);//Set next block start address			
 		simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage
@@ -223,7 +223,7 @@ public class OS implements OperatingSystem {
 				
 		if (connectionID == Hardware.Disk.device){
 			printLine("Disk deviceID: Word 1: " + connectionID);
-			readRequestedDiskBlock(nValue, readToAddress);			
+			writeCommandDiskBlock(nValue, readToAddress);			
 		} else if (connectionID == Hardware.Terminal.device) {
 			printLine("Terminal deviceID: Word 1: " + connectionID);
 		}	
@@ -241,7 +241,7 @@ public class OS implements OperatingSystem {
 				
 		if (connectionID == Hardware.Disk.device){
 			printLine("Disk deviceID: Word 1: " + connectionID);
-			writeRequestedDiskBlock(nValue, writeFromAddress);
+			readCommandDiskBlock(nValue, writeFromAddress);
 		} else if (connectionID == Hardware.Terminal.device) {
 			printLine("Terminal deviceID: Word 1: " + connectionID);
 		}				
