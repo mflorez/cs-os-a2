@@ -89,18 +89,16 @@ public class OS implements OperatingSystem {
 			}			
 			break;
 		case terminal:
-			printLine("Interrupt: terminal");
-			this.simHW.store(Hardware.Address.systemBase, 3);			
+			printLine("Interrupt: terminal");					
 						
 			int data = this.simHW.fetch(Hardware.Address.terminalDataRegister);
-			printLine("Data: " + data);	
+			printLine("Terminal Data: " + data);	
 			
 			int status = this.simHW.fetch(Hardware.Address.terminalStatusRegister);
 			if(status == Hardware.Status.ok)
 			{
 				printLine("Terminal: Hardware.Status.ok");				
-				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);
-				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);							
+				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);				
 			} else if (status == Hardware.Status.badCommand)
 			{
 				printLine("Terminal: Hardware.Status.badCommand");
@@ -247,9 +245,10 @@ public class OS implements OperatingSystem {
 			printLine("executeDeviceReadCall->Terminal numberOfChrToRead: Word 2: " + numberOfChrToRead);
 		
 			int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
-			printLine("executeDeviceReadCall->Terminal nValue: Word 3: " + nValue);			
-									
-			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);						
+			printLine("executeDeviceReadCall->Terminal nValue: Word 3: " + nValue);	
+			
+			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);
+						
 		}	
 	}
 	
