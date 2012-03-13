@@ -109,6 +109,28 @@ public class OS implements OperatingSystem {
 		simHW.store(Hardware.Address.diskBlockRegister, blockCounter++);//Next block from disk   			
 		simHW.store(Hardware.Address.diskAddressRegister, nextBlockStartaddress);//Set next block start address			
 		simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage
+	}	
+	
+	/**
+	 * Reads the requested disk block
+	 * @param blockNumber
+	 * @param blockAddress
+	 */
+	private void readRequestedDiskBlock(int blockNumber, int blockAddress){
+		simHW.store(Hardware.Address.diskBlockRegister, blockNumber);//Next block from disk   			
+		simHW.store(Hardware.Address.diskAddressRegister, blockAddress);//Set next block start address			
+		simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage
+	}
+	
+	/**
+	 * Write request disk block
+	 * @param blockNumber
+	 * @param blockAddress
+	 */
+	private void writeRequestedDiskBlock(int blockNumber, int blockAddress){
+		simHW.store(Hardware.Address.diskBlockRegister, blockNumber);//Next block from disk   			
+		simHW.store(Hardware.Address.diskAddressRegister, blockAddress);//Set next block start address			
+		simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.writeCommand);//Read from disk to primary storage
 	}
 	
 	/**
@@ -191,14 +213,20 @@ public class OS implements OperatingSystem {
 		this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
 		connectionID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
 		
-		int writeFromAddres = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
-		printLine("writeFromAddres: Word 2: " + writeFromAddres);
+		int readToAddres = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
+		printLine("writeFromAddres: Word 2: " + readToAddres);
 		
 		int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
 		printLine("nValue: Word 3: " + nValue);
 				
 		if (connectionID == Hardware.Disk.device){
 			printLine("Disk deviceID: Word 1: " + connectionID);
+			if (nValue >= 0 && nValue <= Hardware.Disk.blockCount) {
+				readRequestedDiskBlock(nValue, readToAddres);
+			} else {
+				// Block is not valid. "should cause a bad block-number error.
+			}				 
+			
 		} else if (connectionID == Hardware.Terminal.device) {
 			printLine("Terminal deviceID: Word 1: " + connectionID);
 		}	
@@ -215,10 +243,12 @@ public class OS implements OperatingSystem {
 		int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
 		printLine("nValue: Word 3: " + nValue);
 				
-		if (connectionID == Hardware.Disk.device){
-			printLine("Disk deviceID: Word 1: " + connectionID);
-		} else if (connectionID == Hardware.Terminal.device) {
-			printLine("Terminal deviceID: Word 1: " + connectionID);
+		printLine("Disk deviceID: Word 1: " + connectionID);
+		if (nValue >= 0 && nValue <= Hardware.Disk.blockCount) {
+			writeRequestedDiskBlock(nValue, writeFromAddres);
+			
+		} else {
+			// Block is not valid. "should cause a bad block-number error.
 		}		
 	}
 	
