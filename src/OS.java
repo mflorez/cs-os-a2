@@ -90,10 +90,11 @@ public class OS implements OperatingSystem {
 			break;
 		case terminal:
 			printLine("Interrupt: terminal");
+			this.simHW.store(Hardware.Address.systemBase, 3);			
 						
 			int data = this.simHW.fetch(Hardware.Address.terminalDataRegister);
-			printLine("Data: " + data);
-						
+			printLine("Data: " + data);	
+			
 			int status = this.simHW.fetch(Hardware.Address.terminalStatusRegister);
 			if(status == Hardware.Status.ok)
 			{
@@ -246,10 +247,9 @@ public class OS implements OperatingSystem {
 			printLine("executeDeviceReadCall->Terminal writeFromAddress: Word 2: " + readToAddress);
 		
 			int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
-			printLine("executeDeviceReadCall->Terminal nValue: Word 3: " + nValue);
-			
-			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);		
-
+			printLine("executeDeviceReadCall->Terminal nValue: Word 3: " + nValue);			
+									
+			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);						
 		}	
 	}
 	
