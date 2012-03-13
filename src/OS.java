@@ -120,7 +120,7 @@ public class OS implements OperatingSystem {
 	private void readRequestedDiskBlock(int blockNumber, int blockAddress){
 		simHW.store(Hardware.Address.diskBlockRegister, blockNumber);//Next block from disk   			
 		simHW.store(Hardware.Address.diskAddressRegister, blockAddress);//Set next block start address			
-		simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage
+		simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.writeCommand);//Read from disk to primary storage
 	}
 	
 	/**
@@ -131,7 +131,7 @@ public class OS implements OperatingSystem {
 	private void writeRequestedDiskBlock(int blockNumber, int blockAddress){
 		simHW.store(Hardware.Address.diskBlockRegister, blockNumber);//Next block from disk   			
 		simHW.store(Hardware.Address.diskAddressRegister, blockAddress);//Set next block start address			
-		simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.writeCommand);//Read from disk to primary storage
+		simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage
 	}
 	
 	/**
