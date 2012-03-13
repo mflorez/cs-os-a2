@@ -245,8 +245,7 @@ public class OS implements OperatingSystem {
 				
 		printLine("Disk deviceID: Word 1: " + connectionID);
 		if (nValue >= 0 && nValue <= Hardware.Disk.blockCount) {
-			writeRequestedDiskBlock(nValue, writeFromAddres);
-			
+			writeRequestedDiskBlock(nValue, writeFromAddres);			
 		} else {
 			// Block is not valid. "should cause a bad block-number error.
 		}		
