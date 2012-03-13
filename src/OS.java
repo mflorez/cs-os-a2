@@ -275,7 +275,6 @@ public class OS implements OperatingSystem {
 			printLine("executeDeviceReadCall->Terminal nValue: Word 3: " + nValue);
 			
 			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);
-
 		}				
 	}
 	
