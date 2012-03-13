@@ -215,15 +215,15 @@ public class OS implements OperatingSystem {
 		int connectionID; // 1 is device, 3 is terminal.		
 		connectionID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
 		
-		int readToAddres = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
-		printLine("writeFromAddres: Word 2: " + readToAddres);
+		int readToAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
+		printLine("writeFromAddres: Word 2: " + readToAddress);
 		
 		int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
 		printLine("nValue: Word 3: " + nValue);
 				
 		if (connectionID == Hardware.Disk.device){
 			printLine("Disk deviceID: Word 1: " + connectionID);
-			readRequestedDiskBlock(nValue, readToAddres);			
+			readRequestedDiskBlock(nValue, readToAddress);			
 		} else if (connectionID == Hardware.Terminal.device) {
 			printLine("Terminal deviceID: Word 1: " + connectionID);
 		}	
@@ -233,15 +233,15 @@ public class OS implements OperatingSystem {
 		int connectionID; // 1 is device, 3 is terminal.		
 		connectionID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
 		
-		int writeFromAddres = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
-		printLine("writeFromAddres: Word 2: " + writeFromAddres);
+		int writeFromAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
+		printLine("writeFromAddres: Word 2: " + writeFromAddress);
 		
 		int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
 		printLine("nValue: Word 3: " + nValue);
 				
 		if (connectionID == Hardware.Disk.device){
 			printLine("Disk deviceID: Word 1: " + connectionID);
-			writeRequestedDiskBlock(nValue, writeFromAddres);
+			writeRequestedDiskBlock(nValue, writeFromAddress);
 		} else if (connectionID == Hardware.Terminal.device) {
 			printLine("Terminal deviceID: Word 1: " + connectionID);
 		}				
