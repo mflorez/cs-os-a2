@@ -13,6 +13,8 @@ public class OS implements OperatingSystem {
 	private ProgramEntity proEnt;
 	private int blockCounter = 0;
 	private boolean startPrograms;
+	private boolean startDeviceReads;
+	private boolean startDeviceWrites;
 		
 	public int getProcessCount() {
 		return proEnt.getBlockEntityList().size();
@@ -84,7 +86,16 @@ public class OS implements OperatingSystem {
 				preemptiveRoundRobinProcessing(proIndex); // Implements Round Robin.  It starts processing preemptively based on the next on the list and the count down timer.
 								
 				startPrograms = false;				
-			} 			
+			} 
+			
+			if (this.startDeviceReads) {
+				executeDeviceReadCall();
+			}
+			
+			if (this.startDeviceWrites) {
+				executeDeviceWriteCall();
+			}
+			
 			break;
 		case terminal:
 			printLine("Interrupt: terminal");
@@ -199,11 +210,11 @@ public class OS implements OperatingSystem {
 			break;
 		case SystemCall.read:
 			printLine("SystemCall: read");
-			executeDeviceReadCall();	
+			startDeviceReads = true;				
 			break;
 		case SystemCall.write:
 			printLine("SystemCall: write");
-			executeDeviceWriteCall();			
+			startDeviceWrites = true;						
 			break;
 		}
 	}
