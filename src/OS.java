@@ -12,8 +12,8 @@ public class OS implements OperatingSystem {
 	private DiskEntity dEnt;
 	private ProgramEntity proEnt;
 	private int blockCounter = 0;
-	private boolean startPrograms;	
-		
+	private boolean startPrograms;
+				
 	public int getProcessCount() {
 		return proEnt.getBlockEntityList().size();
 	}
@@ -98,12 +98,14 @@ public class OS implements OperatingSystem {
 			if(status == Hardware.Status.ok)
 			{
 				printLine("Terminal: Hardware.Status.ok");				
-				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);				
+				
+				this.simHW.store(Hardware.Address.terminalDataRegister, data);
+				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);
+				
 			} else if (status == Hardware.Status.badCommand)
 			{
 				printLine("Terminal: Hardware.Status.badCommand");
-			}
-			
+			}			
 			break;
 		case countdown:
 			int cDownReg = simHW.fetch(Hardware.Address.countdownRegister);
@@ -235,17 +237,17 @@ public class OS implements OperatingSystem {
 			int readToAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
 			printLine("executeDeviceReadCall->Disk writeFromAddres: Word 2: " + readToAddress);
 		
-			int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
-			printLine("executeDeviceReadCall->Disk nValue: Word 3: " + nValue);
+			int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3 number of characters to read.
+			printLine("executeDeviceReadCall->Disk nValue: Word 3 (char count): " + nValue);
 			
 			this.writeCommandDiskBlock(nValue, readToAddress);			
 		} else if (connectionID == Hardware.Terminal.device) {
 			printLine("executeDeviceReadCall->Terminal deviceID: Word 1: " + connectionID);
-			int numberOfChrToRead = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
-			printLine("executeDeviceReadCall->Terminal numberOfChrToRead: Word 2: " + numberOfChrToRead);
+			int valueReadFromDevice = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
+			printLine("executeDeviceReadCall->Terminal (valueReadFromDevice): Word 2: " + valueReadFromDevice);
 		
-			int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
-			printLine("executeDeviceReadCall->Terminal nValue: Word 3: " + nValue);	
+			int numberOfChrToRead = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
+			printLine("executeDeviceReadCall->Terminal (numberOfChrToRead): Word 3: " + numberOfChrToRead);	
 			
 			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);
 						
