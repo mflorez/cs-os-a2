@@ -13,6 +13,7 @@ public class OS implements OperatingSystem {
 	private ProgramEntity proEnt;
 	private int blockCounter = 0;
 	private boolean startPrograms;
+	private int terminalData = 0;
 				
 	public int getProcessCount() {
 		return proEnt.getBlockEntityList().size();
@@ -99,7 +100,7 @@ public class OS implements OperatingSystem {
 			{
 				printLine("Terminal: Hardware.Status.ok");				
 				
-				this.simHW.store(Hardware.Address.terminalDataRegister, data);
+				this.simHW.store(Hardware.Address.terminalDataRegister, terminalData);
 				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);
 				
 			} else if (status == Hardware.Status.badCommand)
@@ -249,6 +250,7 @@ public class OS implements OperatingSystem {
 			int numberOfChrToRead = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
 			printLine("executeDeviceReadCall->Terminal (numberOfChrToRead): Word 3: " + numberOfChrToRead);	
 			
+			terminalData = valueReadFromDevice;
 			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);
 						
 		}	
