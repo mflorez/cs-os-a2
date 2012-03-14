@@ -115,12 +115,12 @@ public class OS implements OperatingSystem {
 			if(status == Hardware.Status.ok)
 			{
 				printLine("Terminal: Hardware.Status.ok");
-				if (numberOfCharToRead > 0){
+				if (numberOfCharToRead > 1){
 					printLine("terminalDataStartAddress: " + terminalDataStartAddress);
-					int terminalData = this.simHW.fetch(terminalDataStartAddress + 1);
+					int terminalData = this.simHW.fetch(terminalDataStartAddress);
 					printLine("terminalData: " + terminalData);
 					this.simHW.store(Hardware.Address.terminalDataRegister, terminalData);
-					this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);					
+					this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);					
 					printLine("numberOfChrToRead: " + numberOfCharToRead);
 				}
 				
@@ -275,9 +275,9 @@ public class OS implements OperatingSystem {
 			numberOfCharToRead = nValue;
 			printLine("executeDeviceReadCall->Terminal (nValue): Word 3: " + nValue);
 			
-			int terminalData = this.simHW.fetch(terminalDataStartAddress);
-			this.simHW.store(Hardware.Address.terminalDataRegister,  terminalData);
-			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);					
+			if (nValue > 0) {
+				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);
+			}												
 		}	
 	}
 	
