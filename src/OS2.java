@@ -1,3 +1,4 @@
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.ArrayList;
@@ -12,7 +13,8 @@ public class OS2 implements OperatingSystem {
 	private DiskEntity dEnt;
 	private ProgramEntity proEnt;
 	private int blockCounter = 0;
-	private boolean startPrograms;	
+	private int terminalDataAddress = 0;
+ 	private boolean startPrograms;	
 		
 	public int getProcessCount() {
 		return proEnt.getBlockEntityList().size();
@@ -90,35 +92,75 @@ public class OS2 implements OperatingSystem {
 		case terminal:
 			printLine("Interrupt: terminal");
 			
-			//1
-			int data = this.simHW.fetch(Hardware.Address.terminalDataRegister); 
-			printLine("Data: " + data);
-			this.simHW.store(Hardware.Address.terminalDataRegister,  Hardware.Terminal.readCommand);
-		
-			//2
-			data = this.simHW.fetch(Hardware.Address.terminalDataRegister); 
-			printLine("Data: " + data);
+			//Get data from terminalDataAddress
+			int terminalData = this.simHW.fetch(terminalDataAddress);
+			printLine("terminalData: " + terminalData);
 			
-			//3
-			this.simHW.store(Hardware.Address.terminalDataRegister, data); 
-			data = this.simHW.fetch(Hardware.Address.terminalDataRegister); 
-			printLine("Data: " + data);
-			
-			//4
-			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);				
-			data = this.simHW.fetch(Hardware.Address.terminalDataRegister); 
-			printLine("Data: " + data);
-			
-			if (data == Hardware.Terminal.eosCharacter)
-			{
-				printLine("Hardware.Terminal.eosCharacter");
-				
+			//Split up terminalData into array using mod 10
+			List<Integer> digits = new ArrayList<Integer>();
+			int num = terminalData;
+			while (num>0) {
+			    digits.add(0, num%10);
+			    num=num/10;
 			}
+			
+			//Write to terminalDataRegister
+			for(int i=0; i < digits.size(); i++ )
+			{
+
+				this.simHW.store(Hardware.Address.terminalDataRegister, digits.get(i));
+				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);
+			
+			}
+			
+			digits.clear();// Clear digits array for next interrupt
+			terminalDataAddress++;//move to next address
+	
+			
+			
+//			int num = terminalData;
+//			
+//			List<Integer> digits = new ArrayList<Integer>();
+//
+//			while (num>0) {
+//			    digits.add(0, num%10);
+//			    num=num/10;
+//			}
+//
+//			for(int i=0; i < digits.size(); i++ )
+//			{
+//				
+//				this.simHW.store(Hardware.Address.terminalDataRegister,  digits.get(i));
+//				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);
+//			}
+//			
+//			System.out.println(Arrays.toString(digits.toArray()));
+			
+			
+//
+//			String [] result = String.valueOf(terminalData).split(""); 
+//			for (int i = 1; i < result.length; i++)
+//			{
+//				printLine("result: " + result[i]);
+//				
+//			}
+//			
+//			int data = this.simHW.fetch(Hardware.Address.terminalDataRegister); 
+//			printLine("Data: " + data);
+//		
+			//this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);
+//			
+//			
+//			if (data == Hardware.Terminal.eosCharacter)
+//			{
+//				printLine("Hardware.Terminal.eosCharacter");
+//			}
 						
 			int status = this.simHW.fetch(Hardware.Address.terminalStatusRegister);
 			if(status == Hardware.Status.ok)
 			{
 				printLine("Hardware.Status.ok");
+				
 			}
 			
 			if(status == Hardware.Status.badCommand)
@@ -264,35 +306,15 @@ public class OS2 implements OperatingSystem {
 			printLine("Disk deviceID: Word 1: " + connectionID);
 			readRequestedDiskBlock(nValue, readToAddress);			
 		} else if (connectionID == Hardware.Terminal.device) {
-			printLine("Terminal read call");
-			
-			int rValue = this.simHW.fetch(1);
-			printLine("rValue: " + rValue);
-			
-			//1
-			int data = this.simHW.fetch(Hardware.Address.terminalDataRegister); 
-			printLine("Data: " + data);
-			this.simHW.store(Hardware.Address.terminalDataRegister,  Hardware.Terminal.readCommand);
+			printLine("executeDeviceReadCall->Terminal deviceID: Word 1: " + connectionID);
+			int valueReadFromDevice = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
+			printLine("executeDeviceReadCall->Terminal (valueReadFromDevice): Word 2: " + valueReadFromDevice);
 		
-			//2
-			data = this.simHW.fetch(Hardware.Address.terminalDataRegister); 
-			printLine("Data: " + data);
+			int numberOfChrToRead = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
+			printLine("executeDeviceReadCall->Terminal (numberOfChrToRead): Word 3: " + numberOfChrToRead);	
 			
-			//3
-			this.simHW.store(Hardware.Address.terminalDataRegister, data); 
-			data = this.simHW.fetch(Hardware.Address.terminalDataRegister); 
-			printLine("Data: " + data);
-			
-			//4
-			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);				
-			data = this.simHW.fetch(Hardware.Address.terminalDataRegister); 
-			printLine("Data: " + data);
-			
-		//this.simHW.store(Hardware.Address.terminalCommandRegister,  data);
-						
-			
-			
-			printLine("Terminal deviceID: Word 1: " + connectionID);
+			terminalDataAddress = valueReadFromDevice;
+			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);
 		}	
 	}
 	
