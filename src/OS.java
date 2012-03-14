@@ -105,10 +105,12 @@ public class OS implements OperatingSystem {
 				}
 				
 				//Write to terminalDataRegister
-				for(int i=0; i < digits.size(); i++ )
-				{
-					this.simHW.store(Hardware.Address.terminalDataRegister, digits.get(i));				
-				}
+//				for(int i=0; i < digits.size(); i++ )
+//				{
+//					this.simHW.store(Hardware.Address.terminalDataRegister, digits.get(i));				
+//				}
+				
+				this.simHW.store(Hardware.Address.systemBase + 1, 1);
 				
 				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);				
 				
@@ -259,8 +261,7 @@ public class OS implements OperatingSystem {
 			int numberOfChrToRead = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
 			printLine("executeDeviceReadCall->Terminal (numberOfChrToRead): Word 3: " + numberOfChrToRead);	
 						
-			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);
-						
+			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);					
 		}	
 	}
 	
