@@ -110,7 +110,6 @@ public class OS implements OperatingSystem {
 					this.simHW.store(Hardware.Address.terminalDataRegister, digits.get(i));				
 				}
 				
-				// this.simHW.store(Hardware.Address.terminalDataRegister, someData);
 				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);				
 				
 			} else if (status == Hardware.Status.badCommand)
