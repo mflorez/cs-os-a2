@@ -16,8 +16,8 @@ public class OS implements OperatingSystem {
 	
 	public int getProcessCount() {
 		return proEnt.getBlockEntityList().size();
-	}
-
+	}	
+	
 	private int deviceStatus;
 	private int terminalDataStartAddress = 0;
 	private int numberOfCharToRead = 0;
