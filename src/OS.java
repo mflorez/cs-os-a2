@@ -97,9 +97,8 @@ public class OS implements OperatingSystem {
 			int status = this.simHW.fetch(Hardware.Address.terminalStatusRegister);
 			if(status == Hardware.Status.ok)
 			{
-				printLine("Terminal: Hardware.Status.ok");
-				this.simHW.store(Hardware.Address.terminalDataRegister, data);
-				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);											
+				printLine("Terminal: Hardware.Status.ok");					
+				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);				
 				
 			} else if (status == Hardware.Status.badCommand)
 			{
