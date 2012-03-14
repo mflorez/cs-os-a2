@@ -13,7 +13,6 @@ public class OS implements OperatingSystem {
 	private ProgramEntity proEnt;
 	private int blockCounter = 0;
 	private boolean startPrograms;
-	private int terminalStoreAddress;				
 	public int getProcessCount() {
 		return proEnt.getBlockEntityList().size();
 	}
@@ -98,8 +97,21 @@ public class OS implements OperatingSystem {
 			if(status == Hardware.Status.ok)
 			{
 				printLine("Terminal: Hardware.Status.ok");
-				this.simHW.store(terminalStoreAddress, data);
-				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);				
+				List<Integer> digits = new ArrayList<Integer>();
+				int num = data;
+				while (num>0) {
+				    digits.add(0, num%10);
+				    num=num/10;
+				}
+				
+				//Write to terminalDataRegister
+				for(int i=0; i < digits.size(); i++ )
+				{
+					this.simHW.store(Hardware.Address.terminalDataRegister, digits.get(i));				
+				}
+				
+				// this.simHW.store(Hardware.Address.terminalDataRegister, someData);
+				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);				
 				
 			} else if (status == Hardware.Status.badCommand)
 			{
@@ -247,11 +259,7 @@ public class OS implements OperatingSystem {
 		
 			int numberOfChrToRead = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
 			printLine("executeDeviceReadCall->Terminal (numberOfChrToRead): Word 3: " + numberOfChrToRead);	
-			
-			int val = this.simHW.fetch(addrsValReadFromDevice);
-			printLine("val..." + val);
-			
-			terminalStoreAddress = addrsValReadFromDevice;
+						
 			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);
 						
 		}	
