@@ -264,6 +264,7 @@ public class OS implements OperatingSystem {
 			printLine("SystemCall: close");
 			deviceID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
 			deviceStatus = this.simHW.fetch(Hardware.Address.systemBase);
+						
 			printLine("deviceStatus: " + deviceStatus);
 			if ((deviceID == Hardware.Terminal.device || deviceID == Hardware.Disk.device) && connectionIDUsed == -1 && deviceStatus != Hardware.Status.badAddress) {
 				if (deviceID == Hardware.Disk.device){
@@ -273,7 +274,9 @@ public class OS implements OperatingSystem {
 					if (terminalInUse) {
 						terminalUseStack.pop(); // Pop the terminal to allow to be used again
 						this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
-					}										
+					} else {
+						printLine("Hardware.Terminal.device - Info: " + "Closed multiple times...");
+					}
 				}				
 				connectionIDUsed = deviceID;			
 			}  					
@@ -357,7 +360,7 @@ public class OS implements OperatingSystem {
 			if (nValue > 0){
 				if (writeFromAddress > 0) {
 					readCommandDiskBlock(nValue, writeFromAddress);
-				} 			
+				}  
 			} else {
 				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badBlockNumber);
 			}			
