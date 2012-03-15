@@ -18,6 +18,8 @@ public class OS implements OperatingSystem {
 	int connectionIDUsed = -1;
 	boolean terminalInUse;
 	private Stack<Integer> terminalUseStack;
+	private List<Integer>driveConnectionIdList;
+	
 	public int getProcessCount() {
 		return proEnt.getBlockEntityList().size();
 	}	
@@ -32,6 +34,7 @@ public class OS implements OperatingSystem {
 		proEnt = new ProgramEntity();
 		dEnt = new DiskEntity();
 		terminalUseStack = new Stack<Integer>();
+		driveConnectionIdList = new ArrayList<Integer>();
 	}
 
 	/**
@@ -241,13 +244,18 @@ public class OS implements OperatingSystem {
 			deviceStatus = this.simHW.fetch(Hardware.Address.systemBase);
 			printLine("Current Device Status: " + deviceStatus);
 			deviceID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
+			
 			terminalInUse = terminalUseStack.contains(deviceID); // Is the terminal being used?
 			printLine("terminalInUse: " + terminalInUse);
 			
 			if ((deviceID == Hardware.Terminal.device || deviceID == Hardware.Disk.device) && deviceStatus != Hardware.Status.badAddress) {
 				printLine("SystemCall: open (deviceID == Hardware.Terminal.device || deviceID == Hardware.Disk.device)");
 				if (deviceID == Hardware.Disk.device){
-					this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
+					this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok); // Set hardware status.
+					driveConnectionIdList.add(deviceID); // Keep list of devices added by type
+					
+					int connectionID = driveConnectionIdList.size(); // Get a connection id.
+					this.simHW.store(Hardware.Address.systemBase + 1, connectionID); // Set the connection id for device.					
 				} else if (deviceID == Hardware.Terminal.device) {
 					if (deviceStatus != Hardware.Status.deviceBusy) {
 						if (terminalInUse == false) {
@@ -268,7 +276,15 @@ public class OS implements OperatingSystem {
 			printLine("deviceStatus: " + deviceStatus);
 			if ((deviceID == Hardware.Terminal.device || deviceID == Hardware.Disk.device) && connectionIDUsed == -1 && deviceStatus != Hardware.Status.badAddress) {
 				if (deviceID == Hardware.Disk.device){
-					this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);					
+					int connectionID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Get the connection id.
+					printLine("connectionID: " + connectionID);
+					boolean containsID = anyListIndexExists(driveConnectionIdList, connectionID);
+					if (containsID){
+						printLine("containsID: " + containsID);
+						this.driveConnectionIdList.remove(connectionID);
+						this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok); // Set status to OK.
+						this.simHW.store(Hardware.Address.systemBase + 1, 0); // Set connection id to 0
+					}					
 				} else if (deviceID == Hardware.Terminal.device) {
 					terminalInUse = terminalUseStack.contains(deviceID); // Is the terminal being used?
 					if (terminalInUse) {
@@ -323,7 +339,7 @@ public class OS implements OperatingSystem {
 					this.writeCommandDiskBlock(nValue, readToAddress);
 				} 
 			} else {
-				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badBlockNumber);
+				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badCount);
 			}
 		} else if (connectionID == Hardware.Terminal.device) {
 			printLine("executeDeviceReadCall->Terminal deviceID: Word 1: " + connectionID);
@@ -335,13 +351,21 @@ public class OS implements OperatingSystem {
 			numberOfCharToRead = nValue;
 			printLine("executeDeviceReadCall->Terminal (nValue): Word 3: " + nValue);
 			
-			if (ttyData == Hardware.Terminal.eosCharacter) {
-				printLine("Hardware.Terminal.eosCharacter: " + Hardware.Terminal.eosCharacter);
-				this.simHW.store(Hardware.Address.systemBase + 1, 0);	
+			if (nValue > 0){
+				if (readToAddress > 0){
+					if (ttyData == Hardware.Terminal.eosCharacter) {
+						printLine("Hardware.Terminal.eosCharacter: " + Hardware.Terminal.eosCharacter);
+						this.simHW.store(Hardware.Address.systemBase + 1, 0);	
+					} else {
+						this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);				
+						this.simHW.store(Hardware.Address.systemBase + 1, 1);				
+					}	
+				} 
 			} else {
-				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);				
-				this.simHW.store(Hardware.Address.systemBase + 1, 1);				
-			}			
+				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badCount);
+			}
+			
+					
 		}
 	}
 	
@@ -522,6 +546,12 @@ public class OS implements OperatingSystem {
 		boolean isValid = (index >= 0 && index <= ls.size());
 		return isValid;
 	}
+	
+	private boolean anyListIndexExists(final List<?> ls, final int index) {
+		boolean isValid = (index >= 0 && index <= ls.size());
+		return isValid;
+	}
+	
 	
 	private void printLine(String msg){
 		System.out.println(msg);		
