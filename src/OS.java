@@ -20,9 +20,7 @@ public class OS implements OperatingSystem {
 	
 	private int deviceStatus;
 	private int terminalDataStartAddress = 0;
-	private int numberOfCharToRead = 0;
-	private int terminalReadCount = 0;
-	private int terminalWriteCount = 0;
+	private int numberOfCharToRead = 0;	
 	private int countdown = 10000;	
 	
 	public OS(Hardware hw) {
@@ -293,11 +291,8 @@ public class OS implements OperatingSystem {
 			numberOfCharToRead = nValue;
 			printLine("executeDeviceReadCall->Terminal (nValue): Word 3: " + nValue);
 			
-			if ( terminalReadCount <= 200 ) {				
-				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);				
-				this.simHW.store(Hardware.Address.systemBase + 1, 1);
-				terminalReadCount ++;
-			}												
+			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);				
+			this.simHW.store(Hardware.Address.systemBase + 1, 1);												
 		}	
 	}
 	
@@ -322,11 +317,7 @@ public class OS implements OperatingSystem {
 			int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
 			printLine("executeDeviceReadCall->Terminal nValue: Word 3: " + nValue);			
 			
-			if	(terminalReadCount <= 200){	
-				
-				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);
-			    terminalWriteCount++;
-			}		
+			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);	
 		}				
 	}
 	
