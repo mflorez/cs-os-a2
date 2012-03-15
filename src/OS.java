@@ -15,6 +15,7 @@ public class OS implements OperatingSystem {
 	private boolean startPrograms;
 	int ttyData = 1;
 	int connectionIDUsed = -1;
+	boolean terminalInUse;
 	
 	public int getProcessCount() {
 		return proEnt.getBlockEntityList().size();
@@ -189,8 +190,7 @@ public class OS implements OperatingSystem {
 				// printLine("Index block value: " + programBlocks + " @ index: " + i);
 				blkCount += programBlocks;
 			}						
-		}
-		//printLine("Program block count: " + blkCount);
+		}		
 		return blkCount;
 	}
 	
@@ -241,7 +241,16 @@ public class OS implements OperatingSystem {
 			deviceID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
 			if (deviceID == Hardware.Terminal.device || deviceID == Hardware.Disk.device) {
 				printLine("SystemCall: open (deviceID == Hardware.Terminal.device || deviceID == Hardware.Disk.device)");
-				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);			
+				if (deviceID == Hardware.Disk.device){
+					this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
+				} else if (deviceID == Hardware.Terminal.device) {
+					if (deviceStatus != Hardware.Status.deviceBusy) {
+						if (terminalInUse == false) {
+							this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
+							terminalInUse = true;						
+						}						
+					}
+				}							
 			} else {
 				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badDevice);
 			}						
@@ -249,15 +258,17 @@ public class OS implements OperatingSystem {
 		case SystemCall.close:
 			printLine("SystemCall: close");
 			deviceID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
+			deviceStatus = this.simHW.fetch(Hardware.Address.systemBase);
 			if ((deviceID == Hardware.Terminal.device || deviceID == Hardware.Disk.device) && connectionIDUsed == -1) {
-				deviceStatus = this.simHW.fetch(Hardware.Address.systemBase);
-				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
-				connectionIDUsed = deviceID;
+				if (deviceID == Hardware.Disk.device){
+					this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
+				} else if (deviceID == Hardware.Terminal.device) {					
+					this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
+				}				
+				connectionIDUsed = deviceID;				
 			}  else {
 				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badDevice);
-			}
-			
-						
+			}						
 			break;
 		case SystemCall.read:
 			printLine("SystemCall: read");			
@@ -267,10 +278,9 @@ public class OS implements OperatingSystem {
 					this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
 					executeDeviceReadCall();
 				} else if (deviceID == Hardware.Terminal.device) {
-					executeDeviceReadCall();
-					this.simHW.store(Hardware.Address.systemBase, Hardware.Status.deviceBusy);
-				}
-					
+					this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
+					executeDeviceReadCall();					
+				}					
 			} else {
 				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badDevice);
 			}					
@@ -320,10 +330,8 @@ public class OS implements OperatingSystem {
 				this.simHW.store(Hardware.Address.systemBase + 1, 0);	
 			} else {
 				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);				
-				this.simHW.store(Hardware.Address.systemBase + 1, 1);	
-				
-			}
-			
+				this.simHW.store(Hardware.Address.systemBase + 1, 1);				
+			}			
 		}
 	}
 	
