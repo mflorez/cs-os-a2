@@ -104,7 +104,8 @@ public class OS implements OperatingSystem {
 			printLine("eDeviceWriteCall->Disk deviceID: Word 1: " + connectionID);
 			
 			printLine("executeDeviceReadCall->Terminal deviceID: Word 1: " + connectionID);
-			int readToAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
+			int readToAddress = this.simHW.fetch
+					(Hardware.Address.systemBase + 2); // Word 2
 			printLine("executeDeviceReadCall->Terminal (readToAddress): Word 2: " + readToAddress);
 		
 			int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
@@ -119,6 +120,10 @@ public class OS implements OperatingSystem {
 					printLine("terminalDataStartAddress: " + terminalDataStartAddress);
 					int terminalData = this.simHW.fetch(terminalDataStartAddress);
 					printLine("terminalData: " + terminalData);
+					int ttyData = this.simHW.fetch(Hardware.Address.terminalDataRegister); // Copy the data from the tty data registry
+					
+					this.simHW.store(terminalDataStartAddress, ttyData);
+					
 					this.simHW.store(Hardware.Address.terminalDataRegister, terminalData);
 					this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);					
 					printLine("numberOfChrToRead: " + numberOfCharToRead);
@@ -275,8 +280,8 @@ public class OS implements OperatingSystem {
 			numberOfCharToRead = nValue;
 			printLine("executeDeviceReadCall->Terminal (nValue): Word 3: " + nValue);
 			
-			if (nValue > 0) {
-				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);
+			if (nValue > 0) {				
+				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);				
 			}												
 		}	
 	}
