@@ -13,6 +13,7 @@ public class OS implements OperatingSystem {
 	private ProgramEntity proEnt;
 	private int blockCounter = 0;
 	private boolean startPrograms;
+	int ttyData = 1;
 	
 	public int getProcessCount() {
 		return proEnt.getBlockEntityList().size();
@@ -118,25 +119,15 @@ public class OS implements OperatingSystem {
 					printLine("terminalDataStartAddress: " + terminalDataStartAddress);
 					int terminalData = this.simHW.fetch(terminalDataStartAddress);
 					printLine("terminalData: " + terminalData);
-					int ttyData = this.simHW.fetch(Hardware.Address.terminalDataRegister); // Copy the data from the tty data registry
+					ttyData = this.simHW.fetch(Hardware.Address.terminalDataRegister); // Copy the data from the tty data registry
 					
-					if (ttyData == Hardware.Terminal.eosCharacter) {
-						printLine("Hardware.Terminal.eosCharacter: " + Hardware.Terminal.eosCharacter);
-						printLine("");
-						printLine("");
-						printLine("");
-						printLine("");
-						printLine("");
-						printLine("");
-						printLine("");
-						this.simHW.store(Hardware.Address.systemBase + 1, 0);
-					} else {
-						this.simHW.store(terminalDataStartAddress, ttyData);
-						this.simHW.store(Hardware.Address.terminalDataRegister, ttyData);
+						
+					this.simHW.store(terminalDataStartAddress, ttyData);
+					this.simHW.store(Hardware.Address.terminalDataRegister, ttyData);
 					
-						printLine("numberOfChrToRead: " + numberOfCharToRead);
-					}
-					
+					printLine("numberOfChrToRead: " + numberOfCharToRead);
+						
+						
 					
 				}
 				
@@ -291,9 +282,25 @@ public class OS implements OperatingSystem {
 			numberOfCharToRead = nValue;
 			printLine("executeDeviceReadCall->Terminal (nValue): Word 3: " + nValue);
 			
-			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);				
-			this.simHW.store(Hardware.Address.systemBase + 1, 1);												
-		}	
+			if (ttyData == Hardware.Terminal.eosCharacter) {
+				printLine("Hardware.Terminal.eosCharacter: " + Hardware.Terminal.eosCharacter);
+				printLine("");
+				printLine("");
+				printLine("");
+				printLine("");
+				printLine("");
+				printLine("");
+				printLine("");
+				this.simHW.store(Hardware.Address.systemBase + 1, 0);	
+			}
+			
+			else{
+				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);				
+				this.simHW.store(Hardware.Address.systemBase + 1, 1);	
+				
+			}
+			
+		}
 	}
 	
 	private void executeDeviceWriteCall() {
@@ -317,7 +324,9 @@ public class OS implements OperatingSystem {
 			int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
 			printLine("executeDeviceReadCall->Terminal nValue: Word 3: " + nValue);			
 			
+			if (ttyData != Hardware.Terminal.eosCharacter) {
 			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);	
+			}
 		}				
 	}
 	
