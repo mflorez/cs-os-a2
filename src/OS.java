@@ -105,8 +105,7 @@ public class OS implements OperatingSystem {
 			printLine("eDeviceWriteCall->Disk deviceID: Word 1: " + connectionID);
 			
 			printLine("executeDeviceReadCall->Terminal deviceID: Word 1: " + connectionID);
-			int readToAddress = this.simHW.fetch
-					(Hardware.Address.systemBase + 2); // Word 2
+			int readToAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
 			printLine("executeDeviceReadCall->Terminal (readToAddress): Word 2: " + readToAddress);
 		
 			int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
@@ -123,10 +122,24 @@ public class OS implements OperatingSystem {
 					printLine("terminalData: " + terminalData);
 					int ttyData = this.simHW.fetch(Hardware.Address.terminalDataRegister); // Copy the data from the tty data registry
 					
-					this.simHW.store(terminalDataStartAddress, ttyData);
-					this.simHW.store(Hardware.Address.terminalDataRegister, ttyData);
+					if (ttyData == Hardware.Terminal.eosCharacter) {
+						printLine("Hardware.Terminal.eosCharacter: " + Hardware.Terminal.eosCharacter);
+						printLine("");
+						printLine("");
+						printLine("");
+						printLine("");
+						printLine("");
+						printLine("");
+						printLine("");
+						this.simHW.store(Hardware.Address.systemBase + 1, 0);
+					} else {
+						this.simHW.store(terminalDataStartAddress, ttyData);
+						this.simHW.store(Hardware.Address.terminalDataRegister, ttyData);
 					
-					printLine("numberOfChrToRead: " + numberOfCharToRead);
+						printLine("numberOfChrToRead: " + numberOfCharToRead);
+					}
+					
+					
 				}
 				
 			} else if (status == Hardware.Status.badCommand)
