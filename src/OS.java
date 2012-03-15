@@ -539,13 +539,7 @@ public class OS implements OperatingSystem {
 		boolean isValid = (index >= 0 && index <= ls.size());
 		return isValid;
 	}
-	
-	private boolean anyListIndexExists(final List<?> ls, final int index) {
-		boolean isValid = (index >= 0 && index <= ls.size());
-		return isValid;
-	}
-	
-	
+		
 	private void printLine(String msg){
 		System.out.println(msg);		
 	}
