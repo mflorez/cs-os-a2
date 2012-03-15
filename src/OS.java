@@ -307,7 +307,7 @@ public class OS implements OperatingSystem {
 			if (nValue > 0){
 				if (readToAddress > 0){
 					this.writeCommandDiskBlock(nValue, readToAddress);
-				}
+				} 
 			} else {
 				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badBlockNumber);
 			}
