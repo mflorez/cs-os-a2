@@ -270,11 +270,8 @@ public class OS implements OperatingSystem {
 			if ((deviceID == Hardware.Terminal.device || deviceID == Hardware.Disk.device)) {
 				if (deviceID == Hardware.Disk.device){
 					int connectionID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Get the connection id.
-					printLine("connectionID: " + connectionID);					
-					
-					this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok); // Set status to OK.
-					this.simHW.store(Hardware.Address.systemBase + 1, 0); // Set connection id to 0
-										
+					printLine("connectionID: " + connectionID);						
+					this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok); // Set status to OK.										
 				} else if (deviceID == Hardware.Terminal.device) {
 					terminalInUse = terminalUseStack.contains(deviceID); // Is the terminal being used?
 					if (terminalInUse) {
