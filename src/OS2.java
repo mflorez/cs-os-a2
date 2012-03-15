@@ -282,10 +282,6 @@ public class OS2 implements OperatingSystem {
 			numberOfCharToRead = nValue;
 			printLine("executeDeviceReadCall->Terminal (nValue): Word 3: " + nValue);
 			
-			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);				
-			this.simHW.store(Hardware.Address.systemBase + 1, 1);	
-			
-			
 			if (ttyData == Hardware.Terminal.eosCharacter) {
 				printLine("Hardware.Terminal.eosCharacter: " + Hardware.Terminal.eosCharacter);
 				printLine("");
@@ -295,7 +291,13 @@ public class OS2 implements OperatingSystem {
 				printLine("");
 				printLine("");
 				printLine("");
-				this.simHW.store(Hardware.Address.systemBase + 1, Hardware.Terminal.eosCharacter);
+				this.simHW.store(Hardware.Address.systemBase + 1, 0);	
+			}
+			
+			else{
+				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);				
+				this.simHW.store(Hardware.Address.systemBase + 1, 1);	
+				
 			}
 			
 		}
@@ -322,7 +324,9 @@ public class OS2 implements OperatingSystem {
 			int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
 			printLine("executeDeviceReadCall->Terminal nValue: Word 3: " + nValue);			
 			
+			if (ttyData != Hardware.Terminal.eosCharacter) {
 			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);	
+			}
 		}				
 	}
 	
