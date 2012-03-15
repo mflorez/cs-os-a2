@@ -21,7 +21,8 @@ public class OS2 implements OperatingSystem {
 	private int deviceStatus;
 	private int terminalDataStartAddress = 0;
 	private int numberOfCharToRead = 0;
-	
+	private int terminalReadCount = 0;
+	private int terminalWriteCount = 0;
 	private int countdown = 10000;	
 	
 	public OS2(Hardware hw) {
@@ -104,30 +105,29 @@ public class OS2 implements OperatingSystem {
 			printLine("eDeviceWriteCall->Disk deviceID: Word 1: " + connectionID);
 			
 			printLine("executeDeviceReadCall->Terminal deviceID: Word 1: " + connectionID);
-			int readToAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
+			int readToAddress = this.simHW.fetch
+					(Hardware.Address.systemBase + 2); // Word 2
 			printLine("executeDeviceReadCall->Terminal (readToAddress): Word 2: " + readToAddress);
 		
 			int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
 			numberOfCharToRead = nValue;
 			printLine("executeDeviceReadCall->Terminal (nValue): Word 3: " + nValue);
-		
+			
 			int status = this.simHW.fetch(Hardware.Address.terminalStatusRegister);
 			if(status == Hardware.Status.ok)
 			{
 				printLine("Terminal: Hardware.Status.ok");
 				if (numberOfCharToRead > 1){
-//					printLine("terminalDataStartAddress: " + terminalDataStartAddress);
-//					int terminalData = this.simHW.fetch(terminalDataStartAddress);
-//					printLine("terminalData: " + terminalData);
-
-					int terminalData = this.simHW.fetch(Hardware.Address.terminalDataRegister);
-					this.simHW.store(terminalDataStartAddress, terminalData);
-
-//					this.simHW.store(Hardware.Address.terminalDataRegister, terminalData);					
+					printLine("terminalDataStartAddress: " + terminalDataStartAddress);
+					int terminalData = this.simHW.fetch(terminalDataStartAddress);
+					printLine("terminalData: " + terminalData);
+					int ttyData = this.simHW.fetch(Hardware.Address.terminalDataRegister); // Copy the data from the tty data registry
+					
+					this.simHW.store(terminalDataStartAddress, ttyData);
+					this.simHW.store(Hardware.Address.terminalDataRegister, ttyData);
+//					this.simHW.store(Hardware.Address.terminalDataRegister, ttyData);
 //					this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);					
-//					printLine("numberOfChrToRead: " + numberOfCharToRead);
-				
-				
+					printLine("numberOfChrToRead: " + numberOfCharToRead);
 				}
 				
 			} else if (status == Hardware.Status.badCommand)
@@ -281,9 +281,10 @@ public class OS2 implements OperatingSystem {
 			numberOfCharToRead = nValue;
 			printLine("executeDeviceReadCall->Terminal (nValue): Word 3: " + nValue);
 			
-			if (nValue > 0) {
-				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);
-				this.simHW.store(1, nValue);
+			if ( terminalReadCount <= 10 ) {				
+				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);				
+				this.simHW.store(Hardware.Address.systemBase + 1, 1);
+				terminalReadCount ++;
 			}												
 		}	
 	}
@@ -309,9 +310,16 @@ public class OS2 implements OperatingSystem {
 			int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
 			printLine("executeDeviceReadCall->Terminal nValue: Word 3: " + nValue);			
 			
-			int terminalData = this.simHW.fetch(terminalDataStartAddress);
-			this.simHW.store(Hardware.Address.terminalDataRegister,  terminalData);
-			this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);
+			if	(terminalReadCount <= 10){	
+				//int terminalData = this.simHW.fetch(terminalDataStartAddress);
+				
+				
+				//this.simHW.store(Hardware.Address.terminalDataRegister,  terminalData);
+				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);
+			    terminalWriteCount++;
+			}
+			
+		
 		}				
 	}
 	
