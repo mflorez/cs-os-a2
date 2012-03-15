@@ -14,6 +14,7 @@ public class OS implements OperatingSystem {
 	private int blockCounter = 0;
 	private boolean startPrograms;
 	int ttyData = 1;
+	int connectionIDUsed = -1;
 	
 	public int getProcessCount() {
 		return proEnt.getBlockEntityList().size();
@@ -120,15 +121,11 @@ public class OS implements OperatingSystem {
 					int terminalData = this.simHW.fetch(terminalDataStartAddress);
 					printLine("terminalData: " + terminalData);
 					ttyData = this.simHW.fetch(Hardware.Address.terminalDataRegister); // Copy the data from the tty data registry
-					
-						
+										
 					this.simHW.store(terminalDataStartAddress, ttyData);
 					this.simHW.store(Hardware.Address.terminalDataRegister, ttyData);
 					
-					printLine("numberOfChrToRead: " + numberOfCharToRead);
-						
-						
-					
+					printLine("numberOfChrToRead: " + numberOfCharToRead);					
 				}
 				
 			} else if (status == Hardware.Status.badCommand)
@@ -203,7 +200,8 @@ public class OS implements OperatingSystem {
 	 */
 	public void operatingSystemCall(int sysCall) {
 		int indexAddress;
-		int indexBlock;		
+		int indexBlock;	
+		int deviceID;
 		switch (sysCall) {
 		case SystemCall.exec:
 			printLine("SystemCall: exec");			
@@ -239,22 +237,53 @@ public class OS implements OperatingSystem {
 		case SystemCall.open:
 			printLine("SystemCall: open");
 			deviceStatus = this.simHW.fetch(Hardware.Address.systemBase);
-			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);			
+			printLine("Current Device Status: " + deviceStatus);
+			deviceID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
+			if (deviceID == Hardware.Terminal.device || deviceID == Hardware.Disk.device) {
+				printLine("SystemCall: open (deviceID == Hardware.Terminal.device || deviceID == Hardware.Disk.device)");
+				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);			
+			} else {
+				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badDevice);
+			}						
 			break;
 		case SystemCall.close:
 			printLine("SystemCall: close");
-			deviceStatus = this.simHW.fetch(Hardware.Address.systemBase);
-			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);				
+			deviceID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
+			if ((deviceID == Hardware.Terminal.device || deviceID == Hardware.Disk.device) && connectionIDUsed == -1) {
+				deviceStatus = this.simHW.fetch(Hardware.Address.systemBase);
+				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
+				connectionIDUsed = deviceID;
+			}  else {
+				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badDevice);
+			}
+			
+						
 			break;
 		case SystemCall.read:
 			printLine("SystemCall: read");			
-			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
-			executeDeviceReadCall();			
+			deviceID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
+			if (deviceID == Hardware.Terminal.device || deviceID == Hardware.Disk.device) {
+				if (deviceID == Hardware.Disk.device){
+					this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
+					executeDeviceReadCall();
+				} else if (deviceID == Hardware.Terminal.device) {
+					executeDeviceReadCall();
+					this.simHW.store(Hardware.Address.systemBase, Hardware.Status.deviceBusy);
+				}
+					
+			} else {
+				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badDevice);
+			}					
 			break;
 		case SystemCall.write:
 			printLine("SystemCall: write");
-			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
-			executeDeviceWriteCall();						
+			deviceID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
+			if (deviceID == Hardware.Terminal.device || deviceID == Hardware.Disk.device) {
+				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
+				executeDeviceWriteCall();
+			} else {
+				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badDevice);
+			}						
 			break;
 		}
 	}
@@ -270,8 +299,12 @@ public class OS implements OperatingSystem {
 		
 			int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3 number of characters to read.
 			printLine("executeDeviceReadCall->Disk nValue: Word 3 (char count): " + nValue);
-			
-			this.writeCommandDiskBlock(nValue, readToAddress);			
+			if (nValue > 0){
+				this.writeCommandDiskBlock(nValue, readToAddress);
+			} else {
+				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badCount);
+			}
+						
 		} else if (connectionID == Hardware.Terminal.device) {
 			printLine("executeDeviceReadCall->Terminal deviceID: Word 1: " + connectionID);
 			int readToAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
@@ -284,17 +317,8 @@ public class OS implements OperatingSystem {
 			
 			if (ttyData == Hardware.Terminal.eosCharacter) {
 				printLine("Hardware.Terminal.eosCharacter: " + Hardware.Terminal.eosCharacter);
-				printLine("");
-				printLine("");
-				printLine("");
-				printLine("");
-				printLine("");
-				printLine("");
-				printLine("");
 				this.simHW.store(Hardware.Address.systemBase + 1, 0);	
-			}
-			
-			else{
+			} else {
 				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);				
 				this.simHW.store(Hardware.Address.systemBase + 1, 1);	
 				
@@ -315,7 +339,12 @@ public class OS implements OperatingSystem {
 			int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
 			printLine("eDeviceWriteCall->Disk nValue: Word 3: " + nValue);			
 			
-			readCommandDiskBlock(nValue, writeFromAddress);
+			if (nValue > 0){
+				readCommandDiskBlock(nValue, writeFromAddress);
+			} else {
+				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badCount);
+			}			
+			
 		} else if (connectionID == Hardware.Terminal.device) {
 			printLine("eDeviceWriteCall->Terminal deviceID: Word 1: " + connectionID);
 			int writeFromAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
