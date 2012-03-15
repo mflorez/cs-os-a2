@@ -286,7 +286,9 @@ public class OS implements OperatingSystem {
 			if (deviceID == Hardware.Terminal.device || deviceID == Hardware.Disk.device) {
 				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
 				executeDeviceWriteCall();
-			} 					
+			} else {
+				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badDevice);
+			}					
 			break;
 		}
 	}
@@ -306,7 +308,9 @@ public class OS implements OperatingSystem {
 				if (readToAddress > 0){
 					this.writeCommandDiskBlock(nValue, readToAddress);
 				}
-			}						
+			} else {
+				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badBlockNumber);
+			}
 		} else if (connectionID == Hardware.Terminal.device) {
 			printLine("executeDeviceReadCall->Terminal deviceID: Word 1: " + connectionID);
 			int readToAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
@@ -343,6 +347,8 @@ public class OS implements OperatingSystem {
 				if (writeFromAddress > 0) {
 					readCommandDiskBlock(nValue, writeFromAddress);
 				} 			
+			} else {
+				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badBlockNumber);
 			}			
 		} else if (connectionID == Hardware.Terminal.device) {
 			printLine("eDeviceWriteCall->Terminal deviceID: Word 1: " + connectionID);
@@ -355,7 +361,7 @@ public class OS implements OperatingSystem {
 			if (ttyData != Hardware.Terminal.eosCharacter) {
 				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);	
 			}
-		}				
+		} 
 	}
 	
 	/**

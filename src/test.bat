@@ -20,7 +20,7 @@ javac -classpath pa2-120312.jar;. *.java
 :: java -jar pdb-*.jar results.dsk 509 510 511
 
 java -ea -cp pa2-120312.jar;. main OS pa2-bad.dsk pa2-bad.tty
-:: java -ea -cp pa2-120312.jar;. main OS pa2-ttycopy.dsk pa2-ttycopy.tty
+java -ea -cp pa2-120312.jar;. main OS pa2-ttycopy.dsk pa2-ttycopy.tty
 
 pause
 
