@@ -124,7 +124,7 @@ public class OS2 implements OperatingSystem {
 					int ttyData = this.simHW.fetch(Hardware.Address.terminalDataRegister); // Copy the data from the tty data registry
 					
 					this.simHW.store(terminalDataStartAddress, ttyData);
-					this.simHW.store(Hardware.Address.terminalDataRegister, ttyData);
+//					this.simHW.store(Hardware.Address.terminalDataRegister, ttyData);
 //					this.simHW.store(Hardware.Address.terminalDataRegister, ttyData);
 //					this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);					
 					printLine("numberOfChrToRead: " + numberOfCharToRead);
