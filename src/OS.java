@@ -284,8 +284,7 @@ public class OS implements OperatingSystem {
 						printLine("Hardware.Terminal.device - Info: " + "Closed multiple times...");
 					}
 				}							
-			} 
-			
+			}			
 			break;
 		case SystemCall.read:
 			printLine("SystemCall: read");
@@ -359,9 +358,7 @@ public class OS implements OperatingSystem {
 				} 
 			} else {
 				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badCount);
-			}
-			
-					
+			}					
 		}
 	}
 	
