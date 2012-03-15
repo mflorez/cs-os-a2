@@ -281,7 +281,7 @@ public class OS2 implements OperatingSystem {
 			numberOfCharToRead = nValue;
 			printLine("executeDeviceReadCall->Terminal (nValue): Word 3: " + nValue);
 			
-			if ( terminalReadCount <= 10 ) {				
+			if ( terminalReadCount <= 30 ) {				
 				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);				
 				this.simHW.store(Hardware.Address.systemBase + 1, 1);
 				terminalReadCount ++;
@@ -310,7 +310,7 @@ public class OS2 implements OperatingSystem {
 			int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
 			printLine("executeDeviceReadCall->Terminal nValue: Word 3: " + nValue);			
 			
-			if	(terminalReadCount <= 10){	
+			if	(terminalWriteCount <= 30){	
 				//int terminalData = this.simHW.fetch(terminalDataStartAddress);
 				
 				
