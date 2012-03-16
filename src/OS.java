@@ -20,6 +20,9 @@ public class OS implements OperatingSystem {
 	private Stack<Integer> terminalUseStack;
 	private List<ConnectionDetails> connectionList;
 	private ConnectionDetails cnIdInfo;
+	
+	private ReadInterruptData readData;
+	private WriteInterruptData writeData;
 		
 	public int getProcessCount() {
 		return proEnt.getBlockEntityList().size();
@@ -36,6 +39,9 @@ public class OS implements OperatingSystem {
 		dEnt = new DiskEntity();
 		terminalUseStack = new Stack<Integer>();
 		connectionList = new ArrayList<ConnectionDetails>();
+		
+		readData = new ReadInterruptData();
+		writeData = new WriteInterruptData();
 	}
 
 	/**
@@ -100,7 +106,18 @@ public class OS implements OperatingSystem {
 				preemptiveRoundRobinProcessing(proIndex); // Implements Round Robin.  It starts processing preemptively based on the next on the list and the count down timer.
 								
 				startPrograms = false;				
-			}			
+			}
+			
+			if (this.readData.isInterruptEnabled()){
+				printLine("Interrupt: this.writeCommandDiskBlock(readData);");
+				this.writeCommandDiskBlock(readData);
+			}
+			
+			if (this.writeData.isInterruptEnabled()) {
+				printLine("Interrupt: this.writeData.isInterruptEnabled()");
+				readCommandDiskBlock(writeData);
+			}
+			
 			break;
 		case terminal:
 			printLine("Interrupt: terminal");					
@@ -166,10 +183,16 @@ public class OS implements OperatingSystem {
 	 * @param blockNumber
 	 * @param blockAddress
 	 */
-	private void writeCommandDiskBlock(int blockNumber, int blockAddress){
+	private void writeCommandDiskBlock(ReadInterruptData readData){
+		int blockNumber = readData.getnValue();
+		int blockAddress = readData.getReadToAddress();
+		
 		this.simHW.store(Hardware.Address.diskBlockRegister, blockNumber);//Next block from disk   			
 		this.simHW.store(Hardware.Address.diskAddressRegister, blockAddress);//Set next block start address			
 		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.writeCommand);
+		
+		readData.ResetValue();  // Sets interrupt disabled and zeros all other values.
+		
 	}
 	
 	/**
@@ -177,10 +200,15 @@ public class OS implements OperatingSystem {
 	 * @param blockNumber
 	 * @param blockAddress
 	 */
-	private void readCommandDiskBlock(int blockNumber, int blockAddress){
+	private void readCommandDiskBlock(WriteInterruptData writeData){
+		int blockNumber = writeData.getnValue();
+		int blockAddress = writeData.getWriteFromAddress();
+		
 		this.simHW.store(Hardware.Address.diskBlockRegister, blockNumber);//Next block from disk   			
 		this.simHW.store(Hardware.Address.diskAddressRegister, blockAddress);//Set next block start address			
 		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage
+		
+		writeData.ResetValue();  // Sets interrupt disabled and zeros all other values.
 	}	
 	
 	/**
@@ -335,10 +363,18 @@ public class OS implements OperatingSystem {
 				   
 					if (nValue > 0){
 						if (readToAddress > 0){							
-							this.writeCommandDiskBlock(nValue, readToAddress);							
+							readData.setnValue(nValue);
+							readData.setReadToAddress(readToAddress);
+							readData.setInterruptEnabled(true); // Set it to true to process.
+							
+							printLine("Info: this.writeCommandDiskBlock(readData);");
+							this.writeCommandDiskBlock(readData);
+														
 							this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
 							this.simHW.store(Hardware.Address.systemBase + 1, nValue);											
-						} 
+						} else {
+							this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badAddress);
+						}
 					} else {
 						this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badCount);
 					}
@@ -368,7 +404,9 @@ public class OS implements OperatingSystem {
 									this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);		
 									this.simHW.store(Hardware.Address.systemBase + 1, nValue);				
 								}	
-							} 
+							} else {
+								this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badAddress);
+							}
 						} else {
 							this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badCount);
 						}					
@@ -395,8 +433,14 @@ public class OS implements OperatingSystem {
 					printLine("eDeviceWriteCall->Disk nValue: Word 3: " + nValue);			
 					
 					if (nValue > 0){
-						if (writeFromAddress > 0) {
-							readCommandDiskBlock(nValue, writeFromAddress);
+						if (writeFromAddress > 0) {	
+							writeData.setnValue(nValue);
+							writeData.setWriteFromAddress(writeFromAddress);
+							writeData.setInterruptEnabled(true); // Set it to true to process.
+							
+							readCommandDiskBlock(writeData);
+							printLine("Info: readCommandDiskBlock(writeData);");							
+							
 							this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);							
 						}  
 					} else {
