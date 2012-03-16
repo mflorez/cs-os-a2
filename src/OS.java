@@ -338,6 +338,7 @@ public class OS implements OperatingSystem {
 							this.writeCommandDiskBlock(nValue, readToAddress);							
 							executeDeviceReadCall(connectionID, readToAddress, nValue);
 							this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
+							this.simHW.store(Hardware.Address.systemBase + 1, nValue);
 						} 
 					} else {
 						this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badCount);
