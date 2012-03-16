@@ -208,6 +208,9 @@ public class OS implements OperatingSystem {
 		int indexBlock;	
 		int deviceID;
 		int connectionID;
+		int readToAddress;
+		int nValue;
+		
 		switch (sysCall) {
 		case SystemCall.exec:
 			printLine("SystemCall: exec");			
@@ -323,11 +326,29 @@ public class OS implements OperatingSystem {
 			deviceID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
 			if ((deviceID == Hardware.Terminal.device || deviceID == Hardware.Disk.device)) {
 				if (deviceID == Hardware.Disk.device){
-					this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
-					executeDeviceReadCall();
+					connectionID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
+					readToAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
+					nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3 number of characters to read.
+					printLine("executeDeviceReadCall->Disk deviceID: Word 1: " + connectionID);
+					printLine("executeDeviceReadCall->Disk writeFromAddres: Word 2: " + readToAddress);
+				    printLine("executeDeviceReadCall->Disk nValue: Word 3 (char count): " + nValue);
+				   
+					if (nValue > 0){
+						if (readToAddress > 0){
+							this.writeCommandDiskBlock(nValue, readToAddress);							
+							executeDeviceReadCall(connectionID, readToAddress, nValue);
+							this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
+						} 
+					} else {
+						this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badCount);
+					}
+					
 				} else if (deviceID == Hardware.Terminal.device) {
-					this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
-					executeDeviceReadCall();					
+					connectionID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
+					readToAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
+					nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3 number of characters to read.
+				    executeDeviceReadCall(connectionID, readToAddress, nValue);
+					this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);					
 				}					
 			} 				
 			break;
@@ -347,31 +368,15 @@ public class OS implements OperatingSystem {
 		}
 	}
 	
-	private void executeDeviceReadCall() {
-		int connectionID; // 1 is device, 3 is terminal.		
-		connectionID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
-				
-		if (connectionID == Hardware.Disk.device){
-			printLine("executeDeviceReadCall->Disk deviceID: Word 1: " + connectionID);
-			int readToAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
-			printLine("executeDeviceReadCall->Disk writeFromAddres: Word 2: " + readToAddress);
+	private void executeDeviceReadCall(int connectionID, int readToAddress, int nValue) {
 		
-			int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3 number of characters to read.
-			printLine("executeDeviceReadCall->Disk nValue: Word 3 (char count): " + nValue);
-			if (nValue > 0){
-				if (readToAddress > 0){
-					this.writeCommandDiskBlock(nValue, readToAddress);
-				} 
-			} else {
-				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badCount);
-			}
-		} else if (connectionID == Hardware.Terminal.device) {
+		if (connectionID == Hardware.Terminal.device) {
 			printLine("executeDeviceReadCall->Terminal deviceID: Word 1: " + connectionID);
-			int readToAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
+			readToAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
 			terminalDataStartAddress = readToAddress;
 			printLine("executeDeviceReadCall->Terminal (readToAddress): Word 2: " + readToAddress);
 		
-			int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
+			nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
 			numberOfCharToRead = nValue;
 			printLine("executeDeviceReadCall->Terminal (nValue): Word 3: " + nValue);
 			
