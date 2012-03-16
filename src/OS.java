@@ -67,6 +67,7 @@ public class OS implements OperatingSystem {
 		case disk:
 			printLine("Interrupt: disk");			
 			int exeProgramsBlockCount = getExeProgsBlockCount();  // total programs block count.
+			printLine("exeProgramsBlockCount: " + exeProgramsBlockCount);
 			
 			if(exeProgramsBlockCount == 0) //If disk is empty then halt OS
 			{
@@ -347,8 +348,32 @@ public class OS implements OperatingSystem {
 					connectionID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
 					readToAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
 					nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3 number of characters to read.
-				    executeDeviceReadCall(connectionID, readToAddress, nValue);
-					this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);					
+
+					if (connectionID == Hardware.Terminal.device) {
+						printLine("executeDeviceReadCall->Terminal deviceID: Word 1: " + connectionID);
+						readToAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
+						terminalDataStartAddress = readToAddress;
+						printLine("executeDeviceReadCall->Terminal (readToAddress): Word 2: " + readToAddress);
+					
+						nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
+						numberOfCharToRead = nValue;
+						printLine("executeDeviceReadCall->Terminal (nValue): Word 3: " + nValue);
+						
+						if (nValue > 0){
+							if (readToAddress > 0){
+								if (ttyData == Hardware.Terminal.eosCharacter) {
+									printLine("Hardware.Terminal.eosCharacter: " + Hardware.Terminal.eosCharacter);
+									this.simHW.store(Hardware.Address.systemBase + 1, 0);	
+								} else {
+									this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);
+									this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);		
+									this.simHW.store(Hardware.Address.systemBase + 1, nValue);				
+								}	
+							} 
+						} else {
+							this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badCount);
+						}					
+					}								
 				}					
 			} 				
 			break;
@@ -359,75 +384,44 @@ public class OS implements OperatingSystem {
 			
 			deviceID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
 			if ((deviceID == Hardware.Terminal.device || deviceID == Hardware.Disk.device)) {
-				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
-				executeDeviceWriteCall();
+									
+				connectionID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
+				printLine("eDeviceWriteCall->Disk deviceID: Word 1: " + connectionID);
+				
+				if (connectionID == Hardware.Disk.device){
+					int writeFromAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
+					printLine("eDeviceWriteCall->Disk writeFromAddres: Word 2: " + writeFromAddress);
+				
+					nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
+					printLine("eDeviceWriteCall->Disk nValue: Word 3: " + nValue);			
+					
+					if (nValue > 0){
+						if (writeFromAddress > 0) {
+							readCommandDiskBlock(nValue, writeFromAddress);
+							this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);							
+						}  
+					} else {
+						this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badBlockNumber);
+					}			
+				} else if (connectionID == Hardware.Terminal.device) {
+					printLine("eDeviceWriteCall->Terminal deviceID: Word 1: " + connectionID);
+					int writeFromAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
+					printLine("executeDeviceReadCall->Terminal writeFromAddress: Word 2: " + writeFromAddress);
+							
+					nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
+					printLine("executeDeviceReadCall->Terminal nValue: Word 3: " + nValue);			
+								
+					if (ttyData != Hardware.Terminal.eosCharacter) {
+						this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);	
+					}
+				} 
+				
 			} else {
 				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badDevice);
 			}					
 			break;
 		}
-	}
-	
-	private void executeDeviceReadCall(int connectionID, int readToAddress, int nValue) {
-		
-		if (connectionID == Hardware.Terminal.device) {
-			printLine("executeDeviceReadCall->Terminal deviceID: Word 1: " + connectionID);
-			readToAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
-			terminalDataStartAddress = readToAddress;
-			printLine("executeDeviceReadCall->Terminal (readToAddress): Word 2: " + readToAddress);
-		
-			nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
-			numberOfCharToRead = nValue;
-			printLine("executeDeviceReadCall->Terminal (nValue): Word 3: " + nValue);
-			
-			if (nValue > 0){
-				if (readToAddress > 0){
-					if (ttyData == Hardware.Terminal.eosCharacter) {
-						printLine("Hardware.Terminal.eosCharacter: " + Hardware.Terminal.eosCharacter);
-						this.simHW.store(Hardware.Address.systemBase + 1, 0);	
-					} else {
-						this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.readCommand);				
-						this.simHW.store(Hardware.Address.systemBase + 1, nValue);				
-					}	
-				} 
-			} else {
-				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badCount);
-			}					
-		}
-	}
-	
-	private void executeDeviceWriteCall() {
-		int connectionID; // 1 is device, 3 is terminal.		
-		connectionID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
-		printLine("eDeviceWriteCall->Disk deviceID: Word 1: " + connectionID);
-		
-		if (connectionID == Hardware.Disk.device){
-			int writeFromAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
-			printLine("eDeviceWriteCall->Disk writeFromAddres: Word 2: " + writeFromAddress);
-		
-			int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
-			printLine("eDeviceWriteCall->Disk nValue: Word 3: " + nValue);			
-			
-			if (nValue > 0){
-				if (writeFromAddress > 0) {
-					readCommandDiskBlock(nValue, writeFromAddress);
-				}  
-			} else {
-				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badBlockNumber);
-			}			
-		} else if (connectionID == Hardware.Terminal.device) {
-			printLine("eDeviceWriteCall->Terminal deviceID: Word 1: " + connectionID);
-			int writeFromAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
-			printLine("executeDeviceReadCall->Terminal writeFromAddress: Word 2: " + writeFromAddress);
-					
-			int nValue = this.simHW.fetch(Hardware.Address.systemBase + 3); // Word 3
-			printLine("executeDeviceReadCall->Terminal nValue: Word 3: " + nValue);			
-						
-			if (ttyData != Hardware.Terminal.eosCharacter) {
-				this.simHW.store(Hardware.Address.terminalCommandRegister,  Hardware.Terminal.writeCommand);	
-			}
-		} 
-	}
+	}	
 	
 	/**
 	 * Creates the disk blocks to reference for referencing program block information
