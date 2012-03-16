@@ -334,11 +334,15 @@ public class OS implements OperatingSystem {
 				    printLine("executeDeviceReadCall->Disk nValue: Word 3 (char count): " + nValue);
 				   
 					if (nValue > 0){
-						if (readToAddress > 0){
-							this.writeCommandDiskBlock(nValue, readToAddress);							
-							executeDeviceReadCall(connectionID, readToAddress, nValue);
-							this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
-							this.simHW.store(Hardware.Address.systemBase + 1, nValue);
+						if (readToAddress > 0){							
+							if (nValue == Hardware.Terminal.eosCharacter) {
+								printLine("Hardware.Terminal.eosCharacter: " + Hardware.Terminal.eosCharacter);
+								this.simHW.store(Hardware.Address.systemBase + 1, 0);	
+							} else {
+								this.writeCommandDiskBlock(nValue, readToAddress);							
+								this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
+								this.simHW.store(Hardware.Address.systemBase + 1, nValue);						
+							}												
 						} 
 					} else {
 						this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badCount);
