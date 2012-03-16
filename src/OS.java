@@ -169,7 +169,7 @@ public class OS implements OperatingSystem {
 	private void writeCommandDiskBlock(int blockNumber, int blockAddress){
 		this.simHW.store(Hardware.Address.diskBlockRegister, blockNumber);//Next block from disk   			
 		this.simHW.store(Hardware.Address.diskAddressRegister, blockAddress);//Set next block start address			
-		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.writeCommand);//Read from disk to primary storage
+		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage
 	}
 	
 	/**
@@ -180,7 +180,7 @@ public class OS implements OperatingSystem {
 	private void readCommandDiskBlock(int blockNumber, int blockAddress){
 		this.simHW.store(Hardware.Address.diskBlockRegister, blockNumber);//Next block from disk   			
 		this.simHW.store(Hardware.Address.diskAddressRegister, blockAddress);//Set next block start address			
-		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage
+		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.writeCommand);//Read from disk to primary storage
 	}	
 	
 	/**
@@ -335,7 +335,9 @@ public class OS implements OperatingSystem {
 				   
 					if (nValue > 0){
 						if (readToAddress > 0){							
-							this.writeCommandDiskBlock(nValue, readToAddress);							
+							
+							this.readCommandDiskBlock(nValue, readToAddress);
+							
 							this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
 							this.simHW.store(Hardware.Address.systemBase + 1, nValue);											
 						} 
@@ -409,8 +411,8 @@ public class OS implements OperatingSystem {
 			printLine("eDeviceWriteCall->Disk nValue: Word 3: " + nValue);			
 			
 			if (nValue > 0){
-				if (writeFromAddress > 0) {
-					readCommandDiskBlock(nValue, writeFromAddress);
+				if (writeFromAddress > 0) {					
+					this.writeCommandDiskBlock(nValue, writeFromAddress);
 				}  
 			} else {
 				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badBlockNumber);
