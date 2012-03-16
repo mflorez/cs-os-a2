@@ -17,6 +17,8 @@ public class OS implements OperatingSystem {
 	int ttyData = 1;
 	boolean terminalInUse;
 	private Stack<Integer> terminalUseStack;
+	private List<ConnectionDetails> connectionList;
+	private ConnectionDetails cnIdInfo;
 		
 	public int getProcessCount() {
 		return proEnt.getBlockEntityList().size();
@@ -31,7 +33,8 @@ public class OS implements OperatingSystem {
 		simHW = hw; // Set simulator hardware.
 		proEnt = new ProgramEntity();
 		dEnt = new DiskEntity();
-		terminalUseStack = new Stack<Integer>();		
+		terminalUseStack = new Stack<Integer>();
+		connectionList = new ArrayList<ConnectionDetails>();
 	}
 
 	/**
@@ -204,6 +207,7 @@ public class OS implements OperatingSystem {
 		int indexAddress;
 		int indexBlock;	
 		int deviceID;
+		int connectionID;
 		switch (sysCall) {
 		case SystemCall.exec:
 			printLine("SystemCall: exec");			
@@ -247,8 +251,23 @@ public class OS implements OperatingSystem {
 			
 			if ((deviceID == Hardware.Terminal.device || deviceID == Hardware.Disk.device)) {
 				printLine("SystemCall: open (deviceID == Hardware.Terminal.device || deviceID == Hardware.Disk.device)");
-				if (deviceID == Hardware.Disk.device){
-					this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok); // Set hardware status.										
+				if (deviceID == Hardware.Disk.device){					
+					printLine("connectionList.add(deviceID); // Add one id to the list.");
+					cnIdInfo = new ConnectionDetails();
+					cnIdInfo.setDeviceID(deviceID); // Set the connection ID
+					cnIdInfo.setConnectionOpen(true); // Connection was used to open it.
+					this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok); // Set hardware status.					
+					int getDeviceStatus = this.simHW.fetch(Hardware.Address.systemBase);
+					if (getDeviceStatus == Hardware.Status.ok){ // Device is OK
+						boolean itemAdded = connectionList.add(cnIdInfo); // Add deviceID to the list.
+						if (itemAdded){ // The item was added successfully.
+							int connID = connectionList.size();
+							printLine("int connectionID = connectionList.size(): " + connID);
+							this.simHW.store(Hardware.Address.systemBase + 1, deviceID); // Save connection id after the call.
+						}						
+					} else if (getDeviceStatus == Hardware.Status.badDevice){
+						printLine("getDeviceStatus == Hardware.Status.badDevice");						
+					}
 				} else if (deviceID == Hardware.Terminal.device) {
 					if (deviceStatus != Hardware.Status.deviceBusy) {
 						if (terminalInUse == false) {
@@ -263,17 +282,30 @@ public class OS implements OperatingSystem {
 			break;
 		case SystemCall.close:
 			printLine("SystemCall: close");
-			deviceID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
+			connectionID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
 			deviceStatus = this.simHW.fetch(Hardware.Address.systemBase);
 						
 			printLine("deviceStatus: " + deviceStatus);
-			if ((deviceID == Hardware.Terminal.device || deviceID == Hardware.Disk.device)) {
-				if (deviceID == Hardware.Disk.device){
-					int connectionID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Get the connection id.
-					printLine("connectionID: " + connectionID);						
-					this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok); // Set status to OK.										
-				} else if (deviceID == Hardware.Terminal.device) {
-					terminalInUse = terminalUseStack.contains(deviceID); // Is the terminal being used?
+			if ((connectionID == Hardware.Terminal.device || connectionID == Hardware.Disk.device)) {
+				if (connectionID == Hardware.Disk.device){
+					int cnnID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Get the connection id.
+					printLine("connectionID: " + cnnID);									
+					int cIdInfoIndex = connectionList.indexOf(cnIdInfo);
+					ConnectionDetails cnIdInfoItem = connectionList.get(cIdInfoIndex); // Get the one instance of item.
+					
+					boolean wasOpened = cnIdInfoItem.isConnectionOpen(); // The connection was opened.
+					boolean wasClosed = cnIdInfoItem.isConnectionClose(); // The connection was closed.
+					printLine("wasOpened: " + wasOpened);
+					printLine("wasClosed: " + wasClosed);
+					if (wasOpened && wasClosed == false){						
+						this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok); // Set status to OK.
+						cnIdInfoItem.setConnectionClose(true); // Set the connection to closed.
+						cnIdInfo = cnIdInfoItem; // Update public item.
+						connectionList.set(cIdInfoIndex, cnIdInfoItem); // Update the item in the list.
+						printLine("wasOpened && wasClosed == false: Inside scope...");
+					}
+				} else if (connectionID == Hardware.Terminal.device) {
+					terminalInUse = terminalUseStack.contains(connectionID); // Is the terminal being used?
 					if (terminalInUse) {
 						terminalUseStack.pop(); // Pop the terminal to allow to be used again
 						this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
