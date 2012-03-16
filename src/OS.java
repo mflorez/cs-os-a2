@@ -13,6 +13,7 @@ public class OS implements OperatingSystem {
 	private DiskEntity dEnt;
 	private ProgramEntity proEnt;
 	private int blockCounter = 0;
+	int exeProgramsBlockCount;
 	private boolean startPrograms;
 	int ttyData = 1;
 	boolean terminalInUse;
@@ -66,7 +67,7 @@ public class OS implements OperatingSystem {
 			break;			
 		case disk:
 			printLine("Interrupt: disk");			
-			int exeProgramsBlockCount = getExeProgsBlockCount();  // total programs block count.
+			exeProgramsBlockCount = getExeProgsBlockCount();  // total programs block count.
 			printLine("exeProgramsBlockCount: " + exeProgramsBlockCount);
 			
 			if(exeProgramsBlockCount == 0) //If disk is empty then halt OS
@@ -155,8 +156,6 @@ public class OS implements OperatingSystem {
 	 */
 	private void loadNextDiskBlock(){
 		int nextBlockStartaddress = simHW.fetch(Hardware.Address.diskAddressRegister) + 32; //Find where to load next block
-		// printLine("simHW.fetch(Hardware.Address.diskAddressRegister) + 32 : " + nextBlockStartaddress);
-		
 		this.simHW.store(Hardware.Address.diskBlockRegister, blockCounter++);//Next block from disk   			
 		this.simHW.store(Hardware.Address.diskAddressRegister, nextBlockStartaddress);//Set next block start address			
 		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage		
@@ -170,7 +169,7 @@ public class OS implements OperatingSystem {
 	private void writeCommandDiskBlock(int blockNumber, int blockAddress){
 		this.simHW.store(Hardware.Address.diskBlockRegister, blockNumber);//Next block from disk   			
 		this.simHW.store(Hardware.Address.diskAddressRegister, blockAddress);//Set next block start address			
-		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.writeCommand);//Read from disk to primary storage
+		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.writeCommand);
 	}
 	
 	/**
