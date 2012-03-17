@@ -249,18 +249,40 @@ public class OS implements OperatingSystem {
 	private void writeDiskBlockToDevice(int blockNumber, int writeFromAddress){
 		printLine("Info: writeDiskBlockToDevice(int blockNumber, int writeFromAddress)");
 		
-		for (BlockReadWriteDetails rwDetails : blockReadWriteDetailList){
-			int readAddressData = rwDetails.getBlockWriteData().getBlockAddress();
-			printLine("readData: " + readAddressData );
-			printLine("writeFromAddress: " + writeFromAddress);
+		BlockReadWriteDetails rwDt = findWriteBlockDetails(blockNumber, writeFromAddress);
+		if (rwDt != null){
+			int targetDiskBlockNumber = rwDt.getBlockWriteData().getBlockNumber();
+			int targetDiskBlockAddress = rwDt.getBlockWriteData().getBlockAddress();
 			
+			this.simHW.store(Hardware.Address.diskBlockRegister, targetDiskBlockNumber);//Next block from disk   			
+			this.simHW.store(Hardware.Address.diskAddressRegister, targetDiskBlockAddress);//Set next block start address			
+			this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.writeCommand); // Write from user space to primary storage.
 		}
-			
-		this.simHW.store(Hardware.Address.diskBlockRegister, blockNumber);//Next block from disk   			
-		this.simHW.store(Hardware.Address.diskAddressRegister, writeFromAddress);//Set next block start address			
-		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.writeCommand); // Write from user space to primary storage.		
 	}	
-	
+		
+	/**
+	 * Find the block based on the address and block information
+	 */
+	private BlockReadWriteDetails findWriteBlockDetails(int blockNumber, int writeFromAddress) {
+		BlockReadWriteDetails rwDt = null;
+		for (BlockReadWriteDetails rwDetails : blockReadWriteDetailList){
+			int blockWriteAddressData = rwDetails.getBlockWriteData().getBlockAddress();
+			int blockNumberData = rwDetails.getBlockWriteData().getBlockNumber();
+			
+			printLine("blockWriteAddressData: " + blockWriteAddressData );
+			printLine("blockNumberData: " + blockNumberData );
+			
+			printLine("writeFromAddress: " + writeFromAddress);
+			printLine("blockNumber: " + blockNumber);
+			
+			if (blockWriteAddressData == writeFromAddress && blockNumberData == blockNumber){
+				printLine("Info: Block Found In List: " + writeFromAddress);
+				rwDt = rwDetails;
+				return rwDt;
+			}			
+		}
+		return rwDt;
+	}
 	/**
 	 * Get the total program block count.
 	 * @return
