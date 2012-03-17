@@ -242,8 +242,11 @@ public class OS implements OperatingSystem {
 	 */
 	private void writeDiskBlockToDevice(int blockNumber, int writeFromAddress){
 		printLine("Info: writeDiskBlockToDevice(int blockNumber, int writeFromAddress)");
+		BlockWriteData blkWrDt = new BlockWriteData();
+		blkWrDt.setBlockNumber(blockNumber);
+		blkWrDt.setBlockAddress(writeFromAddress);
 		
-		BlockReadWriteDetails rwDt = this.memManager.findWriteBlockDetails(blockNumber, writeFromAddress);
+		BlockReadWriteDetails rwDt = this.memManager.findWriteBlockDetails(blkWrDt);
 		if (rwDt != null){
 			printLine("Info: Block Found In Memory Manager: " + writeFromAddress);
 			
