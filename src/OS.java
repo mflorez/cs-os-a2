@@ -1,5 +1,4 @@
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Stack;
 import java.util.ArrayList;
@@ -17,24 +16,19 @@ public class OS implements OperatingSystem {
 	int nextAvailableBlockAddress;
 	int systemBlockCount;
 	int systemBlockStartAddress;
-	private boolean startPrograms;
 	int ttyData = 1;
 	boolean terminalInUse;
 	private Stack<Integer> terminalUseStack;
 	private List<ConnectionDetails> connectionList;
-	private List<BlockReadWriteDetails> blockReadWriteDetailList;
 	private BlockReadWriteDetails lastBlockReadWriteDetail;
 	private BlockReadData lastBlockReadData;	
 	private ConnectionDetails cnIdInfo;
-			
-	public int getProcessCount() {
-		return proEnt.getBlockEntityList().size();
-	}	
-	
 	private int deviceStatus;
 	private int terminalDataStartAddress = 0;
 	private int numberOfCharToRead = 0;	
 	private int countdown = 10000;	
+	private MemoryManager memManager;
+	private List<BlockReadWriteDetails> blockReadWriteDetailList;
 		
 	public OS(Hardware hw) {
 		simHW = hw; // Set simulator hardware.
@@ -45,7 +39,8 @@ public class OS implements OperatingSystem {
 		
 		blockReadWriteDetailList = new ArrayList<BlockReadWriteDetails>();
 		lastBlockReadWriteDetail = new BlockReadWriteDetails();
-		lastBlockReadData = new BlockReadData();				
+		lastBlockReadData = new BlockReadData();
+		memManager = new MemoryManager(blockReadWriteDetailList);
 	}
 
 	/**
@@ -118,7 +113,6 @@ public class OS implements OperatingSystem {
 					printLine("First program started...");
 					int proIndex = 0; // Call the first program.
 					preemptiveRoundRobinProcessing(proIndex); // Implements Round Robin.  It starts processing preemptively based on the next on the list and the count down timer.
-					startPrograms = false;				
 					lastBlockReadData.setProgramsStarted(true); // All programs where started					
 				}
 			}			
@@ -194,7 +188,7 @@ public class OS implements OperatingSystem {
 		 * Save the blocks and store them in a list.
 		 */
 		lastBlockReadWriteDetail.setBlockReadData(lastBlockReadData); 
-		blockReadWriteDetailList.add(lastBlockReadWriteDetail);		
+		memManager.getBlockReadWriteDetailList().add(lastBlockReadWriteDetail);				
 	}		
 	
 	/**
@@ -238,7 +232,7 @@ public class OS implements OperatingSystem {
 		lastBlockReadWriteDetail.setBlockReadData(lastBlockReadData); 
 		lastBlockReadWriteDetail.setBlockWriteData(blockWriteData);
 		
-		blockReadWriteDetailList.add(lastBlockReadWriteDetail); // Track to write back to the disk.		
+		memManager.getBlockReadWriteDetailList().add(lastBlockReadWriteDetail); // Track to write back to the disk.		
 	}
 	
 	/**
@@ -249,40 +243,22 @@ public class OS implements OperatingSystem {
 	private void writeDiskBlockToDevice(int blockNumber, int writeFromAddress){
 		printLine("Info: writeDiskBlockToDevice(int blockNumber, int writeFromAddress)");
 		
-		BlockReadWriteDetails rwDt = findWriteBlockDetails(blockNumber, writeFromAddress);
+		BlockReadWriteDetails rwDt = this.memManager.findWriteBlockDetails(blockNumber, writeFromAddress);
 		if (rwDt != null){
+			printLine("Info: Block Found In Memory Manager: " + writeFromAddress);
+			
 			int targetDiskBlockNumber = rwDt.getBlockWriteData().getBlockNumber();
 			int targetDiskBlockAddress = rwDt.getBlockWriteData().getBlockAddress();
 			
 			this.simHW.store(Hardware.Address.diskBlockRegister, targetDiskBlockNumber);//Next block from disk   			
 			this.simHW.store(Hardware.Address.diskAddressRegister, targetDiskBlockAddress);//Set next block start address			
 			this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.writeCommand); // Write from user space to primary storage.
-		}
+		} else {
+			printLine("Info: Block Not Found In Memory Manager: " + writeFromAddress);
+		}		
 	}	
 		
-	/**
-	 * Find the block based on the address and block information
-	 */
-	private BlockReadWriteDetails findWriteBlockDetails(int blockNumber, int writeFromAddress) {
-		BlockReadWriteDetails rwDt = null;
-		for (BlockReadWriteDetails rwDetails : blockReadWriteDetailList){
-			int blockWriteAddressData = rwDetails.getBlockWriteData().getBlockAddress();
-			int blockNumberData = rwDetails.getBlockWriteData().getBlockNumber();
-			
-			printLine("blockWriteAddressData: " + blockWriteAddressData );
-			printLine("blockNumberData: " + blockNumberData );
-			
-			printLine("writeFromAddress: " + writeFromAddress);
-			printLine("blockNumber: " + blockNumber);
-			
-			if (blockWriteAddressData == writeFromAddress && blockNumberData == blockNumber){
-				printLine("Info: Block Found In List: " + writeFromAddress);
-				rwDt = rwDetails;
-				return rwDt;
-			}			
-		}
-		return rwDt;
-	}
+
 	/**
 	 * Get the total program block count.
 	 * @return
@@ -676,7 +652,7 @@ public class OS implements OperatingSystem {
 		return isValid;
 	}
 		
-	private void printLine(String msg){
+	private static void printLine(String msg){
 		System.out.println(msg);		
 	}
 }
