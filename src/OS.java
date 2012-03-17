@@ -15,23 +15,36 @@ public class OS implements OperatingSystem {
 	int systemBlockCount;
 	int systemBlockStartAddress;
 	int ttyData = 1;
+	
 	boolean terminalInUse;
 	private Stack<Integer> terminalUseStack;
+	
 	private List<ConnectionDetails> connectionList;
-	private BlockReadWriteDetails lastBlockReadWriteDetail;
-	private BlockReadData lastBlockReadData;	
 	private ConnectionDetails cnIdInfo;
+	
 	private int deviceStatus;
 	private int terminalDataStartAddress = 0;
 	private int numberOfCharToRead = 0;	
 	private int countdown = 10000;	
+	
+	private BlockReadData lastUserSpaceBlockReadData;
+	private BlockReadData lastSystemSpaceBlockReadData;
+	
+	private BlockReadWriteDetails lastUserSpaceBlockReadWriteDetail;
+	private BlockReadWriteDetails lastSystemSpaceBlockReadWriteDetail;
+	
 	private MemoryManager userSpaceMemManager;
 	private MemoryManager systemSpaceMemManager;
+	
 	private List<BlockReadWriteDetails> userSpaceBlockReadWriteDetailList;
 	private List<BlockReadWriteDetails> systemSpaceBlockReadWriteDetailList;
+	
 	private int userSpaceNextBlock;
 	private int userSpaceBlockIndex;
 	
+	private int systemSpaceNextBlock;	
+	private int systemSpaceBlockIndex;
+		
 	public OS(Hardware hw) {
 		simHW = hw; // Set simulator hardware.
 		proEnt = new ProgramEntity();
@@ -40,10 +53,21 @@ public class OS implements OperatingSystem {
 		connectionList = new ArrayList<ConnectionDetails>();
 		
 		userSpaceBlockReadWriteDetailList = new ArrayList<BlockReadWriteDetails>();
-		lastBlockReadWriteDetail = new BlockReadWriteDetails();
-		lastBlockReadData = new BlockReadData();
+		systemSpaceBlockReadWriteDetailList = new ArrayList<BlockReadWriteDetails>();
+		
+		lastUserSpaceBlockReadWriteDetail = new BlockReadWriteDetails();
+		lastSystemSpaceBlockReadWriteDetail = new BlockReadWriteDetails();
+		
+		lastUserSpaceBlockReadData = new BlockReadData();
+		lastSystemSpaceBlockReadData = new BlockReadData();
+		/*
+		 * Set the initial system base start address.
+		 */
+		lastSystemSpaceBlockReadData.setBlockAddress(Hardware.Address.systemBase);
+		
 		userSpaceMemManager = new MemoryManager(userSpaceBlockReadWriteDetailList);
 		systemSpaceMemManager = new MemoryManager(systemSpaceBlockReadWriteDetailList);	
+		systemSpaceMemManager.getNextBlock(); // Start from 1 index to allow for the system registers
 	}
 	
 	/**
@@ -62,11 +86,22 @@ public class OS implements OperatingSystem {
 	public int getUserSpaceBlockIndex() {
 		userSpaceBlockIndex = userSpaceMemManager.getBlockIndex();
 		return userSpaceBlockIndex;
+	}	
+
+	public int getSystemSpaceNextBlock() {
+		systemSpaceNextBlock = systemSpaceMemManager.getNextBlock();
+		return systemSpaceNextBlock;
 	}
 
+	public int getSystemSpaceBlockIndex(){
+		systemSpaceBlockIndex = systemSpaceMemManager.getBlockIndex();
+		return systemSpaceBlockIndex;
+	}
+	
 	private void holtOS(){
 		simHW.store(Hardware.Address.haltRegister, 2);
 	}
+	
 	/**
 	 * OS Interrupt handler 
 	 */
@@ -87,10 +122,10 @@ public class OS implements OperatingSystem {
 			 * Start tracking read information.
 			 */
 			int blkIndex = getUserSpaceBlockIndex();
-			lastBlockReadData.setBlockNumber(blkIndex); // Save it before it is incremented.
-			lastBlockReadData.setBlockAddress(startAddress); // Start @ user base.
-			lastBlockReadData.setReadStarted(true); // The read started.  Disk interrupt will be triggered.
-			lastBlockReadData.setProgramsStarted(false); // Programs started.
+			lastUserSpaceBlockReadData.setBlockNumber(blkIndex); // Save it before it is incremented.
+			lastUserSpaceBlockReadData.setBlockAddress(startAddress); // Start @ user base.
+			lastUserSpaceBlockReadData.setReadStarted(true); // The read started.  Disk interrupt will be triggered.
+			lastUserSpaceBlockReadData.setProgramsStarted(false); // Programs started.
 			
 			printLine("Interrupt: getBlockIndex() before increase: " + blkIndex);			
 			simHW.store(Hardware.Address.diskBlockRegister, getUserSpaceNextBlock());
@@ -121,15 +156,15 @@ public class OS implements OperatingSystem {
 				simHW.store(Hardware.Address.haltRegister, 2);
 			}				
 			
-			if (lastBlockReadData.isProgramLoadingComplete() == false) {
+			if (lastUserSpaceBlockReadData.isProgramLoadingComplete() == false) {
 				int loadBlockCount = exeProgramsBlockCount + 1; // Load 1 extra block for indexBlock.  Should be one more than program locks
-				if (lastBlockReadData.getBlockNumber() < loadBlockCount) {
+				if (lastUserSpaceBlockReadData.getBlockNumber() < loadBlockCount) {
 					printLine("Info: Loading EXE program blocks...: loadBlockCount: " + loadBlockCount);
 					loadNextDiskBlock(); // Load the next disk block.
 					simHW.store(Hardware.Address.PCRegister, Hardware.Address.idleStart);//Set PCRegister to prevent illegal instruction interrupt
-				} else if (lastBlockReadData.getBlockNumber() == loadBlockCount) { // Program block loaded.
+				} else if (lastUserSpaceBlockReadData.getBlockNumber() == loadBlockCount) { // Program block loaded.
 					
-					lastBlockReadData.setProgramLoadingComplete(true); // will only run once.
+					lastUserSpaceBlockReadData.setProgramLoadingComplete(true); // will only run once.
 					this.createDiskEntity(); // Create the disk entity blocks.
 				
 					List<WordEntity> iEntity = dEnt.getBlockEntity(0).getWordEntityList();
@@ -139,9 +174,13 @@ public class OS implements OperatingSystem {
 					printLine("First program started...");
 					int proIndex = 0; // Call the first program.
 					preemptiveRoundRobinProcessing(proIndex); // Implements Round Robin.  It starts processing preemptively based on the next on the list and the count down timer.
-					lastBlockReadData.setProgramsStarted(true); // All programs where started					
+					lastUserSpaceBlockReadData.setProgramsStarted(true); // All programs where started					
 				}
-			}			
+			} else if (lastUserSpaceBlockReadData.getBlockNumber() ==  31) {
+				int userSpaceBlkIndex = lastUserSpaceBlockReadData.getBlockNumber();
+				printLine("Info: All UserSpace (32) blocks used...; userSpaceBlkIndex: " + userSpaceBlkIndex);	
+			}
+			
 			break;
 		case terminal:
 			printLine("Interrupt: terminal");					
@@ -207,15 +246,15 @@ public class OS implements OperatingSystem {
 		/*
 		 * Keep track of blocks written to user space.
 		 */
-		lastBlockReadData.setBlockAddress(nextBlockStartAddress); 
-		lastBlockReadData.setBlockNumber(nextBlockIndex);
-		lastBlockReadData.setReadStarted(true);
+		lastUserSpaceBlockReadData.setBlockAddress(nextBlockStartAddress); 
+		lastUserSpaceBlockReadData.setBlockNumber(nextBlockIndex);
+		lastUserSpaceBlockReadData.setReadStarted(true);
 		
 		/*
 		 * Save the blocks and store them in a list.
 		 */
-		lastBlockReadWriteDetail.setBlockReadData(lastBlockReadData); 
-		userSpaceMemManager.getBlockReadWriteDetailList().add(lastBlockReadWriteDetail);				
+		lastUserSpaceBlockReadWriteDetail.setBlockReadData(lastUserSpaceBlockReadData); 
+		userSpaceMemManager.getBlockReadWriteDetailList().add(lastUserSpaceBlockReadWriteDetail);				
 	}		
 	
 	/**
@@ -236,8 +275,8 @@ public class OS implements OperatingSystem {
 			/*
 			 * I has not reached 32; track it with MemoryManager.
 			 */
-			int nextAvailableBlockIndex = lastBlockReadData.getBlockNumber() + 1;
-			int nextAvailableBlockAddress = lastBlockReadData.getBlockAddress() + 32;
+			int nextAvailableBlockIndex = lastUserSpaceBlockReadData.getBlockNumber() + 1;
+			int nextAvailableBlockAddress = lastUserSpaceBlockReadData.getBlockAddress() + 32;
 
 			printLine("nextAvailableBlockIndex: " + nextAvailableBlockIndex);
 			printLine("nextAvailableBlockAddress: " + nextAvailableBlockAddress);
@@ -250,18 +289,27 @@ public class OS implements OperatingSystem {
 				int nxtBlkIdx = this.getUserSpaceNextBlock();
 				loadBlockToUserSpace(nxtBlkIdx, nextAvailableBlockAddress);
 				/*
-				 * Add to memory management.
+				 * Add to user space memory management.
 				 */
-				addBlockToMemoryManager(nextAvailableBlockIndex, nextAvailableBlockAddress, blockNumber, readToAddress);
-			} else {
-				printLine("nextAvailableBlockIndex: " + nextAvailableBlockIndex);
-				printLine("nextAvailableBlockAddress: " + nextAvailableBlockAddress);
+				addUserBaseBlockToMemoryManager(nextAvailableBlockIndex, nextAvailableBlockAddress, blockNumber, readToAddress);
+			} else if (nextAvailableBlockIndex == 32) {					
 				/*
 				 * Check for end of usable user space. Start using system base +
 				 * 32 Start second block in system space. Next available is
 				 * blockCounter. Start address of the second block.
 				 */	
-				// holtOS();
+				int nextSystemBaseBlockIndex = this.getSystemSpaceNextBlock();				
+				/*
+				 * Address was set systemBase when initialized.
+				 */
+				int nextSystemBaseBlockStartAddress = lastSystemSpaceBlockReadData.getBlockAddress() + 32; 
+				
+				printLine("nextSystemBaseBlockIndex: " + nextSystemBaseBlockIndex);
+				printLine("nextSystemBaseBlockStartAddress: " + nextSystemBaseBlockStartAddress);
+				/*
+				 * Add to system space memory management.
+				 */
+				addSystemBaseBlockToMemoryManager(nextSystemBaseBlockIndex, nextSystemBaseBlockStartAddress, blockNumber, readToAddress);
 			}
 		} else {
 			/*
@@ -284,20 +332,20 @@ public class OS implements OperatingSystem {
 	}
 	
 	/**
-	 * Add memory block to the memory manager for tracking.
+	 * Add memory block to the user space memory manager for tracking.
 	 * @param nextAvailableBlockIndex
 	 * @param nextAvailableBlockAddress
 	 * @param blockNumber
 	 * @param readToAddress
 	 */
-	private void addBlockToMemoryManager(int nextAvailableBlockIndex, int nextAvailableBlockAddress, int blockNumber, int readToAddress){
+	private void addUserBaseBlockToMemoryManager(int nextAvailableBlockIndex, int nextAvailableBlockAddress, int blockNumber, int readToAddress){
 		/*
 		 * Track last block read information.
 		 */	
-		lastBlockReadData.setBlockNumber(nextAvailableBlockIndex);
-		lastBlockReadData.setBlockAddress(nextAvailableBlockAddress);
-		lastBlockReadData.setReadStarted(true);		
-		lastBlockReadWriteDetail.setBlockReadData(lastBlockReadData);
+		lastUserSpaceBlockReadData.setBlockNumber(nextAvailableBlockIndex);
+		lastUserSpaceBlockReadData.setBlockAddress(nextAvailableBlockAddress);
+		lastUserSpaceBlockReadData.setReadStarted(true);		
+		lastUserSpaceBlockReadWriteDetail.setBlockReadData(lastUserSpaceBlockReadData);
 		
 		/*
 		 * Block source information.  it will be used to write back to the disk.
@@ -306,10 +354,39 @@ public class OS implements OperatingSystem {
 		blockWriteData.setBlockNumber(blockNumber);
 		blockWriteData.setBlockAddress(readToAddress);
 		
-		lastBlockReadWriteDetail.setBlockReadData(lastBlockReadData); 
-		lastBlockReadWriteDetail.setBlockWriteData(blockWriteData);
+		lastUserSpaceBlockReadWriteDetail.setBlockReadData(lastUserSpaceBlockReadData); 
+		lastUserSpaceBlockReadWriteDetail.setBlockWriteData(blockWriteData);
 		
-		userSpaceMemManager.getBlockReadWriteDetailList().add(lastBlockReadWriteDetail);
+		userSpaceMemManager.getBlockReadWriteDetailList().add(lastUserSpaceBlockReadWriteDetail);
+	}
+	
+	/**
+	 * Add memory block to the system space memory manager for tracking.
+	 * @param nextAvailableBlockIndex
+	 * @param nextAvailableBlockAddress
+	 * @param blockNumber
+	 * @param readToAddress
+	 */
+	private void addSystemBaseBlockToMemoryManager(int nextAvailableBlockIndex, int nextAvailableBlockAddress, int blockNumber, int readToAddress){
+		/*
+		 * Track last block read information.
+		 */	
+		lastSystemSpaceBlockReadData.setBlockNumber(nextAvailableBlockIndex);
+		lastSystemSpaceBlockReadData.setBlockAddress(nextAvailableBlockAddress);
+		lastSystemSpaceBlockReadData.setReadStarted(true);		
+		lastSystemSpaceBlockReadWriteDetail.setBlockReadData(lastSystemSpaceBlockReadData);
+		
+		/*
+		 * Block source information.  it will be used to write back to the disk.
+		 */
+		BlockWriteData blockWriteData = new BlockWriteData();
+		blockWriteData.setBlockNumber(blockNumber);
+		blockWriteData.setBlockAddress(readToAddress);
+		
+		lastSystemSpaceBlockReadWriteDetail.setBlockReadData(lastSystemSpaceBlockReadData); 
+		lastSystemSpaceBlockReadWriteDetail.setBlockWriteData(blockWriteData);
+		
+		systemSpaceMemManager.getBlockReadWriteDetailList().add(lastSystemSpaceBlockReadWriteDetail);
 	}
 	
 	/**
@@ -317,26 +394,46 @@ public class OS implements OperatingSystem {
 	 * @param blockNumber
 	 * @param writeFromAddress
 	 */
-	private void writeDiskBlockToDevice(int blockNumber, int writeFromAddress){
-		printLine("Info: writeDiskBlockToDevice(int blockNumber, int writeFromAddress)");
-		BlockWriteData blkWrDt = new BlockWriteData();
-		blkWrDt.setBlockNumber(blockNumber);
-		blkWrDt.setBlockAddress(writeFromAddress);
-		
-		BlockReadWriteDetails rwDt = this.userSpaceMemManager.findReadWriteBlockDetails(blkWrDt);
-		if (rwDt != null){
-			printLine("Info: Block Found In Memory Manager: " + writeFromAddress);
-			
-			int targetDiskBlockNumber = rwDt.getBlockWriteData().getBlockNumber();
-			int targetDiskBlockAddress = rwDt.getBlockWriteData().getBlockAddress();
-			
-			this.simHW.store(Hardware.Address.diskBlockRegister, targetDiskBlockNumber);//Next block from disk   			
-			this.simHW.store(Hardware.Address.diskAddressRegister, targetDiskBlockAddress);//Set next block start address			
-			this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.writeCommand); // Write from user space to primary storage.
-		} else {
-			printLine("Info: Block Not Found In Memory Manager: " + writeFromAddress);
-		}		
-	}	
+	private void writeDiskBlockToDevice(int blockNumber, int writeFromAddress) {
+		if (writeFromAddress > Hardware.Address.userBase && writeFromAddress < Hardware.Address.deviceBase) {
+			printLine("Info: writeDiskBlockToDevice(int blockNumber, int writeFromAddress)");
+			BlockWriteData blkWrDt = new BlockWriteData();
+			blkWrDt.setBlockNumber(blockNumber);
+			blkWrDt.setBlockAddress(writeFromAddress);
+
+			BlockReadWriteDetails rwDt = this.userSpaceMemManager.findReadWriteBlockDetails(blkWrDt);
+			if (rwDt != null) {
+				printLine("Info: Block Found In Memory Manager: " + writeFromAddress);
+
+				int targetDiskBlockNumber = rwDt.getBlockWriteData().getBlockNumber();
+				int targetDiskBlockAddress = rwDt.getBlockWriteData().getBlockAddress();
+
+				this.simHW.store(Hardware.Address.diskBlockRegister, targetDiskBlockNumber);
+				this.simHW.store(Hardware.Address.diskAddressRegister, targetDiskBlockAddress);
+				this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.writeCommand); 
+			} else {
+				printLine("Info: Block Not Found In UserSpace Memory Manager: " + writeFromAddress);
+			}
+		} else if (writeFromAddress > Hardware.Address.systemBase && writeFromAddress < Hardware.Address.userBase) {
+			printLine("Info: writeDiskBlockToDevice(int blockNumber, int writeFromAddress)");
+			BlockWriteData blkWrDt = new BlockWriteData();
+			blkWrDt.setBlockNumber(blockNumber);
+			blkWrDt.setBlockAddress(writeFromAddress);
+
+			BlockReadWriteDetails rwDt = this.systemSpaceMemManager.findReadWriteBlockDetails(blkWrDt);
+			if (rwDt != null) {
+				printLine("Info: Block Found In SystemSpace Memory Manager: " + writeFromAddress);	
+				int targetDiskBlockNumber = rwDt.getBlockWriteData().getBlockNumber();
+				int targetDiskBlockAddress = rwDt.getBlockWriteData().getBlockAddress();
+
+				this.simHW.store(Hardware.Address.diskBlockRegister, targetDiskBlockNumber);
+				this.simHW.store(Hardware.Address.diskAddressRegister, targetDiskBlockAddress);
+				this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.writeCommand);
+			}  else {
+				printLine("Info: Block Not Found In SystemSpace Memory Manager: " + writeFromAddress);
+			}
+		}
+	}
 		
 
 	/**
@@ -560,6 +657,7 @@ public class OS implements OperatingSystem {
 		printLine("eDeviceWriteCall->Disk deviceID: Word 1: " + connectionID);
 		
 		if (connectionID == Hardware.Disk.device){
+						
 			int writeFromAddress = this.simHW.fetch(Hardware.Address.systemBase + 2); // Word 2
 			printLine("eDeviceWriteCall->Disk writeFromAddres: Word 2: " + writeFromAddress);
 		
