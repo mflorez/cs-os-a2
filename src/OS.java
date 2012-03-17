@@ -1,4 +1,5 @@
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Stack;
 import java.util.ArrayList;
@@ -12,14 +13,20 @@ public class OS implements OperatingSystem {
 	private Hardware simHW;
 	private DiskEntity dEnt;
 	private ProgramEntity proEnt;
-	private int blockCounter = 0;
+	private int blockCounter;
+	int nextAvailableBlockAddress;
+	int systemBlockCount;
+	int systemBlockStartAddress;
 	private boolean startPrograms;
 	int ttyData = 1;
 	boolean terminalInUse;
 	private Stack<Integer> terminalUseStack;
 	private List<ConnectionDetails> connectionList;
+	private List<BlockReadWriteDetails> blockReadWriteDetailList;
+	private BlockReadWriteDetails lastBlockReadWriteDetail;
+	private BlockReadData lastBlockReadData;	
 	private ConnectionDetails cnIdInfo;
-		
+			
 	public int getProcessCount() {
 		return proEnt.getBlockEntityList().size();
 	}	
@@ -28,13 +35,17 @@ public class OS implements OperatingSystem {
 	private int terminalDataStartAddress = 0;
 	private int numberOfCharToRead = 0;	
 	private int countdown = 10000;	
-	
+		
 	public OS(Hardware hw) {
 		simHW = hw; // Set simulator hardware.
 		proEnt = new ProgramEntity();
 		dEnt = new DiskEntity();
 		terminalUseStack = new Stack<Integer>();
 		connectionList = new ArrayList<ConnectionDetails>();
+		
+		blockReadWriteDetailList = new ArrayList<BlockReadWriteDetails>();
+		lastBlockReadWriteDetail = new BlockReadWriteDetails();
+		lastBlockReadData = new BlockReadData();				
 	}
 
 	/**
@@ -49,10 +60,26 @@ public class OS implements OperatingSystem {
 			break;	
 		case reboot:
 			printLine("Interrupt: reboot");
-			// Load the disk to primary store one block at the time.			
+			// Load the disk to primary store one block at the time.
+			printLine("Interrupt: blockCounter: " + blockCounter);
+			int startAddress = Hardware.Address.userBase;
+			/*
+			 * Start tracking read information.
+			 */
+			lastBlockReadData.setBlockNumber(blockCounter); // Save it before it is incremented.
+			lastBlockReadData.setBlockAddress(startAddress); // Start @ user base.
+			lastBlockReadData.setReadStarted(true); // The read started.  Disk interrupt will be triggered.
+			lastBlockReadData.setProgramsStarted(false); // Programs started.
+			
 			simHW.store(Hardware.Address.diskBlockRegister, blockCounter++);
-			simHW.store(Hardware.Address.diskAddressRegister, Hardware.Address.userBase);
+			printLine("Interrupt: blockCounter++: " + blockCounter);
+			nextAvailableBlockAddress = startAddress; // Index block on user space
+			simHW.store(Hardware.Address.diskAddressRegister, startAddress);
 			simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);
+									
+			/*
+			 * Start idle
+			 */
 			simHW.store(Hardware.Address.PCRegister, Hardware.Address.idleStart);//Set PCRegister to prevent illegal instruction interrupt
 			break;
 		case systemCall:
@@ -71,33 +98,29 @@ public class OS implements OperatingSystem {
 			if(exeProgramsBlockCount == 0) //If disk is empty then halt OS
 			{
 				simHW.store(Hardware.Address.haltRegister, 2);
-			}			
+			}				
 			
-			int loadBlockCount = exeProgramsBlockCount + 2; // Load the indexBlock and the one more past the last (2 extra blocks).
-			if (blockCounter < loadBlockCount) // Loads executable programs blocks into User Space in addition to index block.
-			{				
-				loadNextDiskBlock(); // Load the next disk block.
+			if (lastBlockReadData.isProgramLoadingComplete() == false) {
+				int loadBlockCount = exeProgramsBlockCount + 1; // Load 1 extra block for indexBlock.
+				if (lastBlockReadData.getBlockNumber() < loadBlockCount) {
+					printLine("Info: Loading EXE program blocks...");
+					loadNextDiskBlock(); // Load the next disk block.
+					simHW.store(Hardware.Address.PCRegister, Hardware.Address.idleStart);//Set PCRegister to prevent illegal instruction interrupt
+				} else if (lastBlockReadData.getBlockNumber() == loadBlockCount) { // Program block loaded.
+					
+					lastBlockReadData.setProgramLoadingComplete(true); // will only run once.
+					this.createDiskEntity(); // Create the disk entity blocks.
 				
-				if (blockCounter == loadBlockCount) {
-					startPrograms = true;
-					printLine("Info: startPrograms = true");
+					List<WordEntity> iEntity = dEnt.getBlockEntity(0).getWordEntityList();
+					this.queueProcessExecution(iEntity);	
+					simHW.store(Hardware.Address.countdownRegister, countdown); // Set a timer to start program execution.
+				
+					printLine("First program started...");
+					int proIndex = 0; // Call the first program.
+					preemptiveRoundRobinProcessing(proIndex); // Implements Round Robin.  It starts processing preemptively based on the next on the list and the count down timer.
+					startPrograms = false;				
+					lastBlockReadData.setProgramsStarted(true); // All programs where started					
 				}
-				
-				simHW.store(Hardware.Address.PCRegister, Hardware.Address.idleStart);//Set PCRegister to prevent illegal instruction interrupt
-			}
-			
-			if (startPrograms){ // If all disks are loaded, execute the first program.		
-				this.createDiskEntity(); // Create the disk entity blocks.
-				
-				List<WordEntity> iEntity = dEnt.getBlockEntity(0).getWordEntityList();
-				this.queueProcessExecution(iEntity);	
-				simHW.store(Hardware.Address.countdownRegister, countdown); // Set a timer to start program execution.
-				
-				printLine("First program started...");
-				int proIndex = 0; // Call the first program.
-				preemptiveRoundRobinProcessing(proIndex); // Implements Round Robin.  It starts processing preemptively based on the next on the list and the count down timer.
-								
-				startPrograms = false;				
 			}			
 			break;
 		case terminal:
@@ -153,34 +176,89 @@ public class OS implements OperatingSystem {
 	 * Loads the next disk block.
 	 */
 	private void loadNextDiskBlock(){
-		int nextBlockStartaddress = simHW.fetch(Hardware.Address.diskAddressRegister) + 32; //Find where to load next block
-		// printLine("simHW.fetch(Hardware.Address.diskAddressRegister) + 32 : " + nextBlockStartaddress);
-		
+		printLine("loadNextDiskBlock(): blockCounter: " + blockCounter);
+		int nextBlockStartAddress = simHW.fetch(Hardware.Address.diskAddressRegister) + 32; //Find where to load next block
+				
 		this.simHW.store(Hardware.Address.diskBlockRegister, blockCounter++);//Next block from disk   			
-		this.simHW.store(Hardware.Address.diskAddressRegister, nextBlockStartaddress);//Set next block start address			
-		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage		
-	}	
+		this.simHW.store(Hardware.Address.diskAddressRegister, nextBlockStartAddress);//Set next block start address			
+		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage
+						
+		/*
+		 * Keep track of blocks written to user space.
+		 */
+		lastBlockReadData.setBlockAddress(nextBlockStartAddress); 
+		lastBlockReadData.setBlockNumber(blockCounter);
+		lastBlockReadData.setReadStarted(true);
+		
+		/*
+		 * Save the blocks and store them in a list.
+		 */
+		lastBlockReadWriteDetail.setBlockReadData(lastBlockReadData); 
+		blockReadWriteDetailList.add(lastBlockReadWriteDetail);		
+	}		
 	
 	/**
-	 * Reads the requested disk block
+	 * Reads the requested disk block.  This action will trigger the disk interrupt.
 	 * @param blockNumber
-	 * @param blockAddress
+	 * @param readToAddress
 	 */
-	private void writeCommandDiskBlock(int blockNumber, int blockAddress){
-		this.simHW.store(Hardware.Address.diskBlockRegister, blockNumber);//Next block from disk   			
-		this.simHW.store(Hardware.Address.diskAddressRegister, blockAddress);//Set next block start address			
-		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage		
+	private void readDiskBlockFromDevice(int blockNumber, int readToAddress){
+		printLine("readDiskBlockFromDevice(...): blockCounter: " + blockCounter);
+		int nextAvailableBlockNumber = blockCounter++;
+		if (nextAvailableBlockNumber == 32) { // End of usable user space.  Start using system base + 32
+			blockCounter = systemBlockCount + 1; // Start second block in system space.
+			nextAvailableBlockNumber = blockCounter; // Next available is blockCounter.
+			nextAvailableBlockAddress = systemBlockStartAddress + 32; // Start address of the second block.			
+		} else {
+			nextAvailableBlockNumber = blockCounter;
+			nextAvailableBlockAddress = lastBlockReadData.getBlockAddress() + 32;
+		}		
+		printLine("nextAvailableBlockAddress: " + nextAvailableBlockAddress);
+		
+		this.simHW.store(Hardware.Address.diskBlockRegister, nextAvailableBlockNumber++);//Next block from disk as a parameter.  			
+		
+		this.simHW.store(Hardware.Address.diskAddressRegister, nextAvailableBlockAddress);//Set next block start address.  This is the next available in user space.			
+		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage 32 addresses at the time.
+		
+		/*
+		 * Track block read information.
+		 */		
+		lastBlockReadData.setBlockNumber(nextAvailableBlockNumber);
+		lastBlockReadData.setBlockAddress(nextAvailableBlockAddress);
+		lastBlockReadData.setReadStarted(true);		
+		lastBlockReadWriteDetail.setBlockReadData(lastBlockReadData);
+		
+		/*
+		 * Block source information.  it will be used to write back to the disk.
+		 */
+		BlockWriteData blockWriteData = new BlockWriteData();
+		blockWriteData.setBlockNumber(blockNumber);
+		blockWriteData.setBlockAddress(readToAddress);
+		
+		lastBlockReadWriteDetail.setBlockReadData(lastBlockReadData); 
+		lastBlockReadWriteDetail.setBlockWriteData(blockWriteData);
+		
+		blockReadWriteDetailList.add(lastBlockReadWriteDetail); // Track to write back to the disk.		
 	}
 	
 	/**
 	 * Write request disk block
 	 * @param blockNumber
-	 * @param blockAddress
+	 * @param writeFromAddress
 	 */
-	private void readCommandDiskBlock(int blockNumber, int blockAddress){
+	private void writeDiskBlockToDevice(int blockNumber, int writeFromAddress){
+		printLine("Info: writeDiskBlockToDevice(int blockNumber, int writeFromAddress)");
+		
+		for (BlockReadWriteDetails rwDetails : blockReadWriteDetailList){
+			int readAddressData = rwDetails.getBlockWriteData().getBlockAddress();
+			printLine("readData: " + readAddressData );
+			printLine("writeFromAddress: " + writeFromAddress);
+			
+		}
+			
 		this.simHW.store(Hardware.Address.diskBlockRegister, blockNumber);//Next block from disk   			
-		this.simHW.store(Hardware.Address.diskAddressRegister, blockAddress);//Set next block start address			
-		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.writeCommand);//Read from disk to primary storage
+		this.simHW.store(Hardware.Address.diskAddressRegister, writeFromAddress);//Set next block start address			
+		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.writeCommand); // Write from user space to primary storage.		
 	}	
 	
 	/**
@@ -192,7 +270,7 @@ public class OS implements OperatingSystem {
 		for ( int i = 0; i < Hardware.Disk.blockSize; i++ ){
 			int programBlocks = simHW.fetch(Hardware.Address.userBase + i);//Find how many blocks executable programs occupy.
 			if (programBlocks != 0){
-				// printLine("Index block value: " + programBlocks + " @ index: " + i);
+				printLine("Index block value: " + programBlocks + " @ index: " + i);
 				blkCount += programBlocks;
 			}						
 		}		
@@ -337,7 +415,7 @@ public class OS implements OperatingSystem {
 					if (nValue > 0){
 						if (readToAddress > 0){							
 							
-							this.readCommandDiskBlock(nValue, readToAddress);							
+							this.readDiskBlockFromDevice(nValue, readToAddress);													
 							this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
 							this.simHW.store(Hardware.Address.systemBase + 1, nValue);											
 						} 
@@ -362,7 +440,7 @@ public class OS implements OperatingSystem {
 			deviceID = this.simHW.fetch(Hardware.Address.systemBase + 1); // Word 1 (1 is drive, 3 is terminal)
 			if ((deviceID == Hardware.Terminal.device || deviceID == Hardware.Disk.device)) {
 				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
-				executeDeviceWriteCall();
+				this.executeDeviceWriteCall();
 			} else {
 				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badDevice);
 			}					
@@ -412,7 +490,7 @@ public class OS implements OperatingSystem {
 			
 			if (nValue > 0){
 				if (writeFromAddress > 0) {					
-					this.writeCommandDiskBlock(nValue, writeFromAddress);
+					this.writeDiskBlockToDevice(nValue, writeFromAddress);
 				}  
 			} else {
 				this.simHW.store(Hardware.Address.systemBase, Hardware.Status.badBlockNumber);

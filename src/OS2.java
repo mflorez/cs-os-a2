@@ -23,8 +23,7 @@ public class OS2 implements OperatingSystem {
 	private int readBlock = 0;
 	private int address = 0;
 	private int count = 0;
-	
-		
+			
 	public int getProcessCount() {
 		return proEnt.getBlockEntityList().size();
 	}	
