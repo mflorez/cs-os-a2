@@ -12,10 +12,10 @@ javac -classpath pa2-120312.jar;. *.java
 :: java -ea -cp pa2-120312.jar;. main OS pa2-diskio.dsk
 :: java -jar pdb-*.jar results.dsk 511
 
-:: java -ea -cp pa2-120312.jar;. main OS pa2-3dio.dsk
-:: java -jar pdb-*.jar results.dsk 509 510 511
+java -ea -cp pa2-120312.jar;. main OS pa2-3dio.dsk
+java -jar pdb-*.jar results.dsk 509 510 511
 
-java -ea -cp pa2-120312.jar;. main OS pa2-dio-shared.dsk
+:: java -ea -cp pa2-120312.jar;. main OS pa2-dio-shared.dsk
 :: java -ea -cp pa2-120312.jar;. main OS pa2-dio-checked.dsk
 
 :: java -ea -cp pa2-120312.jar;. main OS pa2-ttycopy.dsk pa2-ttycopy.tty

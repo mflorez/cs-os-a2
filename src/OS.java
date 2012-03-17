@@ -101,9 +101,9 @@ public class OS implements OperatingSystem {
 			}				
 			
 			if (lastBlockReadData.isProgramLoadingComplete() == false) {
-				int loadBlockCount = exeProgramsBlockCount + 1; // Load 1 extra block for indexBlock.
+				int loadBlockCount = exeProgramsBlockCount + 2; // Load 1 extra block for indexBlock.  Should be one more than program locks
 				if (lastBlockReadData.getBlockNumber() < loadBlockCount) {
-					printLine("Info: Loading EXE program blocks...");
+					printLine("Info: Loading EXE program blocks...: loadBlockCount: " + loadBlockCount);
 					loadNextDiskBlock(); // Load the next disk block.
 					simHW.store(Hardware.Address.PCRegister, Hardware.Address.idleStart);//Set PCRegister to prevent illegal instruction interrupt
 				} else if (lastBlockReadData.getBlockNumber() == loadBlockCount) { // Program block loaded.
