@@ -11,9 +11,7 @@ import java.util.ArrayList;
 public class OS implements OperatingSystem {
 	private Hardware simHW;
 	private DiskEntity dEnt;
-	private ProgramEntity proEnt;
-	private int blockCounter;
-	int nextAvailableBlockAddress;
+	private ProgramEntity proEnt;	
 	int systemBlockCount;
 	int systemBlockStartAddress;
 	int ttyData = 1;
@@ -29,7 +27,9 @@ public class OS implements OperatingSystem {
 	private int countdown = 10000;	
 	private MemoryManager memManager;
 	private List<BlockReadWriteDetails> blockReadWriteDetailList;
-		
+	private int nextBlock;
+	private int blockIndex;
+	
 	public OS(Hardware hw) {
 		simHW = hw; // Set simulator hardware.
 		proEnt = new ProgramEntity();
@@ -41,6 +41,24 @@ public class OS implements OperatingSystem {
 		lastBlockReadWriteDetail = new BlockReadWriteDetails();
 		lastBlockReadData = new BlockReadData();
 		memManager = new MemoryManager(blockReadWriteDetailList);
+	}
+	
+	/**
+	 * Get the next available block from memory manager.
+	 * @return
+	 */
+	public int getNextBlock() {
+		nextBlock = memManager.getNextBlock();
+		return nextBlock;
+	}
+
+	/**
+	 * Get the block index
+	 * @return
+	 */
+	public int getBlockIndex() {
+		blockIndex = memManager.getBlockIndex();
+		return blockIndex;
 	}
 
 	/**
@@ -56,19 +74,21 @@ public class OS implements OperatingSystem {
 		case reboot:
 			printLine("Interrupt: reboot");
 			// Load the disk to primary store one block at the time.
-			printLine("Interrupt: blockCounter: " + blockCounter);
+			
+			printLine("Interrupt: getBlockIndex(): " + getBlockIndex());
 			int startAddress = Hardware.Address.userBase;
 			/*
 			 * Start tracking read information.
 			 */
-			lastBlockReadData.setBlockNumber(blockCounter); // Save it before it is incremented.
+			int blkIndex = getBlockIndex();
+			lastBlockReadData.setBlockNumber(blkIndex); // Save it before it is incremented.
 			lastBlockReadData.setBlockAddress(startAddress); // Start @ user base.
 			lastBlockReadData.setReadStarted(true); // The read started.  Disk interrupt will be triggered.
 			lastBlockReadData.setProgramsStarted(false); // Programs started.
 			
-			simHW.store(Hardware.Address.diskBlockRegister, blockCounter++);
-			printLine("Interrupt: blockCounter++: " + blockCounter);
-			nextAvailableBlockAddress = startAddress; // Index block on user space
+			printLine("Interrupt: getBlockIndex() before increase: " + blkIndex);			
+			simHW.store(Hardware.Address.diskBlockRegister, getNextBlock());
+			printLine("Interrupt: getBlockIndex() after increase: " + getBlockIndex());
 			simHW.store(Hardware.Address.diskAddressRegister, startAddress);
 			simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);
 									
@@ -96,7 +116,7 @@ public class OS implements OperatingSystem {
 			}				
 			
 			if (lastBlockReadData.isProgramLoadingComplete() == false) {
-				int loadBlockCount = exeProgramsBlockCount + 2; // Load 1 extra block for indexBlock.  Should be one more than program locks
+				int loadBlockCount = exeProgramsBlockCount + 1; // Load 1 extra block for indexBlock.  Should be one more than program locks
 				if (lastBlockReadData.getBlockNumber() < loadBlockCount) {
 					printLine("Info: Loading EXE program blocks...: loadBlockCount: " + loadBlockCount);
 					loadNextDiskBlock(); // Load the next disk block.
@@ -170,10 +190,11 @@ public class OS implements OperatingSystem {
 	 * Loads the next disk block.
 	 */
 	private void loadNextDiskBlock(){
-		printLine("loadNextDiskBlock(): blockCounter: " + blockCounter);
+		printLine("loadNextDiskBlock(): blockCounter: " + getBlockIndex());
 		int nextBlockStartAddress = simHW.fetch(Hardware.Address.diskAddressRegister) + 32; //Find where to load next block
-				
-		this.simHW.store(Hardware.Address.diskBlockRegister, blockCounter++);//Next block from disk   			
+		int nextBlockIndex = getNextBlock();
+		
+		this.simHW.store(Hardware.Address.diskBlockRegister, nextBlockIndex);//Next block from disk   			
 		this.simHW.store(Hardware.Address.diskAddressRegister, nextBlockStartAddress);//Set next block start address			
 		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage
 						
@@ -181,7 +202,7 @@ public class OS implements OperatingSystem {
 		 * Keep track of blocks written to user space.
 		 */
 		lastBlockReadData.setBlockAddress(nextBlockStartAddress); 
-		lastBlockReadData.setBlockNumber(blockCounter);
+		lastBlockReadData.setBlockNumber(nextBlockIndex);
 		lastBlockReadData.setReadStarted(true);
 		
 		/*
@@ -196,28 +217,77 @@ public class OS implements OperatingSystem {
 	 * @param blockNumber
 	 * @param readToAddress
 	 */
-	private void readDiskBlockFromDevice(int blockNumber, int readToAddress){
-		printLine("readDiskBlockFromDevice(...): blockCounter: " + blockCounter);
-		int nextAvailableBlockNumber = blockCounter++;
-		if (nextAvailableBlockNumber == 32) { // End of usable user space.  Start using system base + 32
-			blockCounter = systemBlockCount + 1; // Start second block in system space.
-			nextAvailableBlockNumber = blockCounter; // Next available is blockCounter.
-			nextAvailableBlockAddress = systemBlockStartAddress + 32; // Start address of the second block.			
-		} else {
-			nextAvailableBlockNumber = blockCounter;
-			nextAvailableBlockAddress = lastBlockReadData.getBlockAddress() + 32;
-		}		
-		printLine("nextAvailableBlockAddress: " + nextAvailableBlockAddress);
-		
-		this.simHW.store(Hardware.Address.diskBlockRegister, nextAvailableBlockNumber++);//Next block from disk as a parameter.  			
-		
-		this.simHW.store(Hardware.Address.diskAddressRegister, nextAvailableBlockAddress);//Set next block start address.  This is the next available in user space.			
-		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage 32 addresses at the time.
-		
+	private void readDiskBlockFromDevice(int blockNumber, int readToAddress) {
+		printLine("readDiskBlockFromDevice(blockNumber:[" + blockNumber + "], readToAddress:[" + readToAddress + "])");
 		/*
-		 * Track block read information.
-		 */		
-		lastBlockReadData.setBlockNumber(nextAvailableBlockNumber);
+		 * Search for the block using the BlockReadData. If it is found the
+		 * block is in memory, and if not found add it to MemoryManager.
+		 */
+		boolean foundBlock = this.memManager.isBlockInReadWriteBlockDetailsList(blockNumber, readToAddress);
+		printLine("foundBlock: " + foundBlock);
+		if (foundBlock == false) {
+			printLine("foundBlock: " + foundBlock);
+			/*
+			 * I has not reached 32; track it with MemoryManager.
+			 */
+			int nextAvailableBlockIndex = lastBlockReadData.getBlockNumber() + 1;
+			int nextAvailableBlockAddress = lastBlockReadData.getBlockAddress() + 32;
+
+			printLine("nextAvailableBlockIndex: " + nextAvailableBlockIndex);
+			printLine("nextAvailableBlockAddress: " + nextAvailableBlockAddress);
+
+			if (nextAvailableBlockIndex < 32) {
+				/*
+				 * The block was not found in manager; it needs to be added to
+				 * the next block in user space and added to MemoryManager.
+				 */
+				int nxtBlkIdx = this.getNextBlock();
+				loadBlockToUserSpace(nxtBlkIdx, nextAvailableBlockAddress);
+				/*
+				 * Add to memory management.
+				 */
+				addBlockToMemoryManager(nextAvailableBlockIndex, nextAvailableBlockAddress, blockNumber, readToAddress);
+			} else {
+				printLine("nextAvailableBlockIndex: " + nextAvailableBlockIndex);
+				printLine("nextAvailableBlockAddress: " + nextAvailableBlockAddress);
+				/*
+				 * Check for end of usable user space. Start using system base +
+				 * 32 Start second block in system space. Next available is
+				 * blockCounter. Start address of the second block.
+				 */				
+			}
+		} else {
+			/*
+			 * The memory block was found in memory already; it should be
+			 * reloaded from device.
+			 */
+			printLine("Info: block in MemoryManager...:");
+		}
+	}
+	
+	/**
+	 * Add block to next available user space block. Read from disk to primary storage 32 addresses at the time.
+	 * @param blockNumber
+	 * @param blockAddress
+	 */
+	private void loadBlockToUserSpace(int blockNumber, int blockAddress){
+		this.simHW.store(Hardware.Address.diskBlockRegister, blockNumber);  			
+		this.simHW.store(Hardware.Address.diskAddressRegister, blockAddress);			
+		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);
+	}
+	
+	/**
+	 * Add memory block to the memory manager for tracking.
+	 * @param nextAvailableBlockIndex
+	 * @param nextAvailableBlockAddress
+	 * @param blockNumber
+	 * @param readToAddress
+	 */
+	private void addBlockToMemoryManager(int nextAvailableBlockIndex, int nextAvailableBlockAddress, int blockNumber, int readToAddress){
+		/*
+		 * Track last block read information.
+		 */	
+		lastBlockReadData.setBlockNumber(nextAvailableBlockIndex);
 		lastBlockReadData.setBlockAddress(nextAvailableBlockAddress);
 		lastBlockReadData.setReadStarted(true);		
 		lastBlockReadWriteDetail.setBlockReadData(lastBlockReadData);
@@ -232,7 +302,7 @@ public class OS implements OperatingSystem {
 		lastBlockReadWriteDetail.setBlockReadData(lastBlockReadData); 
 		lastBlockReadWriteDetail.setBlockWriteData(blockWriteData);
 		
-		memManager.getBlockReadWriteDetailList().add(lastBlockReadWriteDetail); // Track to write back to the disk.		
+		memManager.getBlockReadWriteDetailList().add(lastBlockReadWriteDetail);
 	}
 	
 	/**
@@ -246,7 +316,7 @@ public class OS implements OperatingSystem {
 		blkWrDt.setBlockNumber(blockNumber);
 		blkWrDt.setBlockAddress(writeFromAddress);
 		
-		BlockReadWriteDetails rwDt = this.memManager.findWriteBlockDetails(blkWrDt);
+		BlockReadWriteDetails rwDt = this.memManager.findReadWriteBlockDetails(blkWrDt);
 		if (rwDt != null){
 			printLine("Info: Block Found In Memory Manager: " + writeFromAddress);
 			
