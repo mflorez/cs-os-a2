@@ -169,7 +169,7 @@ public class OS implements OperatingSystem {
 	private void writeCommandDiskBlock(int blockNumber, int blockAddress){
 		this.simHW.store(Hardware.Address.diskBlockRegister, blockNumber);//Next block from disk   			
 		this.simHW.store(Hardware.Address.diskAddressRegister, blockAddress);//Set next block start address			
-		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage
+		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);//Read from disk to primary storage		
 	}
 	
 	/**
@@ -243,6 +243,7 @@ public class OS implements OperatingSystem {
 		case SystemCall.yield:
 			printLine("SystemCall: yield");			
 			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
+			break;
 		case SystemCall.open:
 			printLine("SystemCall: open");
 			deviceStatus = this.simHW.fetch(Hardware.Address.systemBase);
@@ -336,8 +337,7 @@ public class OS implements OperatingSystem {
 					if (nValue > 0){
 						if (readToAddress > 0){							
 							
-							this.readCommandDiskBlock(nValue, readToAddress);
-							
+							this.readCommandDiskBlock(nValue, readToAddress);							
 							this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
 							this.simHW.store(Hardware.Address.systemBase + 1, nValue);											
 						} 
