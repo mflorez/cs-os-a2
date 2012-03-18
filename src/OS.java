@@ -94,7 +94,7 @@ public class OS implements OperatingSystem {
 			// Load the disk to primary store one block at the time.
 			
 			int userBaseStartAddress = Hardware.Address.userBase;
-			int systemBaseStartAddress = Hardware.Address.systemBase;
+			int systemBaseStartAddress = Hardware.Address.systemBase + 64;
 			/*
 			 * Start tracking read information.
 			 */
@@ -110,7 +110,7 @@ public class OS implements OperatingSystem {
 			/*
 			 * Start tracking system space information
 			 */
-			lastSystemSpaceBlockReadData.setBlockNumber(0); // Save it before it is incremented.
+			lastSystemSpaceBlockReadData.setBlockNumber(2); // Save it before it is incremented.
 			lastSystemSpaceBlockReadData.setBlockAddress(systemBaseStartAddress); // Start @ user base.
 			lastSystemSpaceBlockReadData.setReadStarted(true); // The read started.  Disk interrupt will be triggered.
 			lastSystemSpaceBlockReadData.setProgramsStarted(false); // Programs started.
@@ -247,6 +247,12 @@ public class OS implements OperatingSystem {
 	private void readDiskBlockFromDevice(int blockNumber, int readToAddress) {
 		printLine("readDiskBlockFromDevice(blockNumber:[" + blockNumber + "], readToAddress:[" + readToAddress + "])");
 		/*
+		 * I has not reached 32; track it with MemoryManager.
+		 */
+		int nextUserSpaceAvailableBlockIndex = lastUserSpaceBlockReadData.getBlockNumber() + 1;
+		int nextUserSpaceAvailableBlockAddress = lastUserSpaceBlockReadData.getBlockAddress() + 32;			
+		
+		/*
 		 * Search for the block using the BlockReadData. If it is found the
 		 * block is in memory, and if not found add it to MemoryManager.
 		 */
@@ -254,16 +260,12 @@ public class OS implements OperatingSystem {
 		printLine("foundBlock: " + foundBlock);
 		if (foundBlock == false) {
 			printLine("foundBlock: " + foundBlock);
-			/*
-			 * I has not reached 32; track it with MemoryManager.
-			 */
-			int nextUserSpaceAvailableBlockIndex = lastUserSpaceBlockReadData.getBlockNumber() + 1;
-			int nextUserSpaceAvailableBlockAddress = lastUserSpaceBlockReadData.getBlockAddress() + 32;			
+			
 			
 			printLine("nextAvailableBlockIndex: " + nextUserSpaceAvailableBlockIndex);
 			printLine("nextAvailableBlockAddress: " + nextUserSpaceAvailableBlockAddress);
 
-			if (nextUserSpaceAvailableBlockIndex <= 32) {
+			if (nextUserSpaceAvailableBlockIndex < 32) {
 				
 				/*
 				 * The block was not found in manager; it needs to be added to
@@ -276,7 +278,7 @@ public class OS implements OperatingSystem {
 				 * Add to user space memory management.
 				 */
 				addUserBaseBlockToMemoryManager(nextUserSpaceAvailableBlockIndex, nextUserSpaceAvailableBlockAddress, blockNumber, readToAddress);
-			} else {	
+			} else if (nextUserSpaceAvailableBlockIndex == 32) {	
 				
 				int nextSystemSpaceAvailableBlockIndex = lastSystemSpaceBlockReadData.getBlockNumber() + 1;
 				int nextSystemSpaceAvailableBlockAddress = lastSystemSpaceBlockReadData.getBlockAddress() + 32;
@@ -307,7 +309,8 @@ public class OS implements OperatingSystem {
 				 */
 				lastSystemSpaceBlockReadData.setBlockNumber(nextSystemSpaceAvailableBlockAddress);
 				lastSystemSpaceBlockReadData.setBlockAddress(nextSystemSpaceAvailableBlockAddress);				
-			}
+			}	
+			
 		} else {
 			/*
 			 * The memory block was found in memory already; it should be
@@ -315,6 +318,9 @@ public class OS implements OperatingSystem {
 			 */
 			printLine("Info: block in MemoryManager...:");
 		}
+		
+		
+		
 	}
 	
 	/**
