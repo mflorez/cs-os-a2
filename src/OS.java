@@ -93,8 +93,9 @@ public class OS implements OperatingSystem {
 			printLine("Interrupt: reboot");
 			// Load the disk to primary store one block at the time.
 			
+			int blockIndex = 1;
 			int userBaseStartAddress = Hardware.Address.userBase;
-			int systemBaseStartAddress = Hardware.Address.systemBase + 64;
+			int systemBaseStartAddress = Hardware.Address.systemBase + (blockIndex * 32);
 			/*
 			 * Start tracking read information.
 			 */
@@ -110,7 +111,7 @@ public class OS implements OperatingSystem {
 			/*
 			 * Start tracking system space information
 			 */
-			lastSystemSpaceBlockReadData.setBlockNumber(2); // Save it before it is incremented.
+			lastSystemSpaceBlockReadData.setBlockNumber(blockIndex); // Save it before it is incremented.
 			lastSystemSpaceBlockReadData.setBlockAddress(systemBaseStartAddress); // Start @ user base.
 			lastSystemSpaceBlockReadData.setReadStarted(true); // The read started.  Disk interrupt will be triggered.
 			lastSystemSpaceBlockReadData.setProgramsStarted(false); // Programs started.
@@ -252,6 +253,8 @@ public class OS implements OperatingSystem {
 		int nextUserSpaceAvailableBlockIndex = lastUserSpaceBlockReadData.getBlockNumber() + 1;
 		int nextUserSpaceAvailableBlockAddress = lastUserSpaceBlockReadData.getBlockAddress() + 32;			
 		
+		int nextSystemSpaceAvailableBlockIndex = lastSystemSpaceBlockReadData.getBlockNumber() + 1;
+		int nextSystemSpaceAvailableBlockAddress = lastSystemSpaceBlockReadData.getBlockAddress() + 32;	
 		/*
 		 * Search for the block using the BlockReadData. If it is found the
 		 * block is in memory, and if not found add it to MemoryManager.
@@ -280,35 +283,30 @@ public class OS implements OperatingSystem {
 				addUserBaseBlockToMemoryManager(nextUserSpaceAvailableBlockIndex, nextUserSpaceAvailableBlockAddress, blockNumber, readToAddress);
 			} else if (nextUserSpaceAvailableBlockIndex == 32) {	
 				
-				int nextSystemSpaceAvailableBlockIndex = lastSystemSpaceBlockReadData.getBlockNumber() + 1;
-				int nextSystemSpaceAvailableBlockAddress = lastSystemSpaceBlockReadData.getBlockAddress() + 32;
-				
-								
-				printLine("nextSystemSpaceAvailableBlockIndex: " + nextSystemSpaceAvailableBlockIndex);
-				printLine("nextSystemSpaceAvailableBlockAddress: " + nextSystemSpaceAvailableBlockAddress);
-				
-				
-				printLine("nextSystemSpaceAvailableBlockAddress: " + nextSystemSpaceAvailableBlockAddress);
-				
-				loadBlockToSystemSpace(nextSystemSpaceAvailableBlockIndex, nextSystemSpaceAvailableBlockAddress);
-				
-				printLine("");
-				printLine("");
-				printLine("nextSystemSpaceAvailableBlockAddress: " + nextSystemSpaceAvailableBlockAddress);
-				printLine("nextSystemSpaceAvailableBlockAddress: " + nextSystemSpaceAvailableBlockAddress);
-				printLine("");
-				printLine("");	
-											
-				/*
-				 * Add to system space memory management.
-				 */
-				addSystemBaseBlockToMemoryManager(nextSystemSpaceAvailableBlockAddress, nextSystemSpaceAvailableBlockAddress, blockNumber, readToAddress);
-				
-				/*
-				 * Save the settings to allow an increment next go around.
-				 */
-				lastSystemSpaceBlockReadData.setBlockNumber(nextSystemSpaceAvailableBlockAddress);
-				lastSystemSpaceBlockReadData.setBlockAddress(nextSystemSpaceAvailableBlockAddress);				
+				if (nextSystemSpaceAvailableBlockAddress < 32) {
+					printLine("nextSystemSpaceAvailableBlockIndex: " + nextSystemSpaceAvailableBlockIndex);
+					printLine("nextSystemSpaceAvailableBlockAddress: " + nextSystemSpaceAvailableBlockAddress);
+
+					loadBlockToSystemSpace(nextSystemSpaceAvailableBlockIndex, nextSystemSpaceAvailableBlockAddress);
+
+					printLine("");
+					printLine("");
+					printLine("nextSystemSpaceAvailableBlockIndex: " + nextSystemSpaceAvailableBlockIndex);
+					printLine("nextSystemSpaceAvailableBlockAddress: " + nextSystemSpaceAvailableBlockAddress);
+					printLine("");
+					printLine("");
+
+					/*
+					 * Add to system space memory management.
+					 */
+					addSystemBaseBlockToMemoryManager(nextSystemSpaceAvailableBlockAddress, nextSystemSpaceAvailableBlockAddress, blockNumber, readToAddress);
+
+					/*
+					 * Save the settings to allow an increment next go around.
+					 */
+					lastSystemSpaceBlockReadData.setBlockNumber(nextSystemSpaceAvailableBlockIndex);
+					lastSystemSpaceBlockReadData.setBlockAddress(nextSystemSpaceAvailableBlockAddress);
+				}							
 			}	
 			
 		} else {
