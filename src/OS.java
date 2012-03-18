@@ -14,7 +14,7 @@ public class OS implements OperatingSystem {
 	private ProgramEntity proEnt;	
 	int systemBlockCount;	
 	int ttyData = 1;
-		
+	int nIndex = 0;	
 	boolean terminalInUse;
 	private Stack<Integer> terminalUseStack;
 	
@@ -24,7 +24,7 @@ public class OS implements OperatingSystem {
 	private int deviceStatus;
 	private int terminalDataStartAddress = 0;
 	private int numberOfCharToRead = 0;	
-	private int countdown = 2000;	
+	private int countdown = 10000;	
 	private int receiverId;
 	private int slotValue;
 	
@@ -473,6 +473,23 @@ public class OS implements OperatingSystem {
 	}
 	
 	/**
+	 * Get the total program block count.
+	 * @return
+	 */
+	private int getExeProgramCount(){
+		int count = 0;		
+		for ( int i = 0; i < Hardware.Disk.blockSize; i++ ){
+			int programBlocks = simHW.fetch(Hardware.Address.userBase + i);//Find how many blocks executable programs occupy.
+			if (programBlocks != 0){
+				count++; // increment count.
+				
+			}						
+		}		
+		return count;
+	}
+	
+	
+	/**
 	 * Operating system calls.
 	 * @param sysCall
 	 */
@@ -499,7 +516,7 @@ public class OS implements OperatingSystem {
 			printLine("SystemCall: exit");			
 			simHW.store(Hardware.Address.haltRegister, 2);
 			break;		
-		case SystemCall.getSlot:
+		case SystemCall.getSlot:			
 			printLine("SystemCall: getSlot");
 			int beforeGetSlot = this.simHW.fetch(Hardware.Address.systemBase);
 			printLine("beforeGetSlot: " + beforeGetSlot);
@@ -511,9 +528,8 @@ public class OS implements OperatingSystem {
 			
 			receiverId = this.simHW.fetch(Hardware.Address.systemBase + 1);
 			slotValue = this.simHW.fetch(Hardware.Address.systemBase + 2);
-			printLine("w0: (receiverId) " + receiverId);			
-			printLine("w0: (slotValue) " + slotValue);
-			
+			printLine("w1: (receiverId) " + receiverId);			
+			printLine("w2: (slotValue) " + slotValue);			
 			this.simHW.store(Hardware.Address.systemBase + 1, receiverID);
 			this.simHW.store(Hardware.Address.systemBase + 2, indexBlock);
 			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);			
@@ -522,7 +538,8 @@ public class OS implements OperatingSystem {
 			printLine("SystemCall: putSlot");			
 			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
 			this.simHW.store(Hardware.Address.systemBase + 1, slotValue);
-			this.simHW.store(Hardware.Address.systemBase + 2, receiverId);
+			this.simHW.store(Hardware.Address.systemBase + 2, receiverId);			
+					
 			break;		
 		case SystemCall.yield:
 			printLine("SystemCall: yield");			
@@ -828,8 +845,8 @@ public class OS implements OperatingSystem {
 	 * @param index
 	 */
 	private void preemptiveRoundRobinProcessing(int index) {
-		boolean isValidIndex = indexExists(proEnt.getBlockEntityList(), index);
-		if (isValidIndex){
+		int progCount = this.getExeProgramCount();
+		if (index < progCount){
 			
 			printLine("Program Index: " + index);
 			
@@ -848,17 +865,6 @@ public class OS implements OperatingSystem {
 		} else {
 			simHW.store(Hardware.Address.haltRegister, 2);
 		}			
-	}
-	
-	/**
-	 * Checks for valid program index
-	 * @param ls
-	 * @param index
-	 * @return
-	 */
-	private boolean indexExists(final List<BlockEntity> ls, final int index) {
-		boolean isValid = (index >= 0 && index <= ls.size());
-		return isValid;
 	}
 		
 	private static void printLine(String msg){
