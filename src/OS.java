@@ -24,7 +24,7 @@ public class OS implements OperatingSystem {
 	private int deviceStatus;
 	private int terminalDataStartAddress = 0;
 	private int numberOfCharToRead = 0;	
-	private int countdown = 300;	
+	private int countdown = 2000;	
 	
 	private BlockReadData lastUserSpaceBlockReadData;
 	private BlockReadData lastSystemSpaceBlockReadData;
@@ -209,14 +209,7 @@ public class OS implements OperatingSystem {
 			if (cDownReg == 0) { // Count down finished reset to stop it from hanging.
 				this.simHW.store(Hardware.Address.countdownRegister, countdown); // set a new count down to keep system from hanging.
 				simHW.store(Hardware.Address.PCRegister, Hardware.Address.idleStart);//Set PCRegister to prevent illegal instruction interrupt
-				
-				simHW.store(Hardware.Address.countdownRegister, countdown); // Set a timer to start program execution.
-				
-			}
-			
-			printLine("Info: this.proEnt.call(): " + this.proEnt.call());
-			printLine("Info: this.proEnt.next(): " + this.proEnt.next());
-			
+			}						
 			break;
 		}
 	}
@@ -485,7 +478,7 @@ public class OS implements OperatingSystem {
 	 * @param sysCall
 	 */
 	public void operatingSystemCall(int sysCall) {
-		int indexAddress;
+		int receiverID;
 		int indexBlock;	
 		int deviceID;
 		int connectionID;
@@ -495,11 +488,11 @@ public class OS implements OperatingSystem {
 		switch (sysCall) {
 		case SystemCall.exec:
 			printLine("SystemCall: exec");			
-			indexAddress =  this.simHW.fetch(Hardware.Address.systemBase + 1); // Get register 1.
-			indexBlock = this.simHW.fetch(indexAddress);
+			receiverID =  this.simHW.fetch(Hardware.Address.systemBase + 1); // Get register 1.
+			indexBlock = this.simHW.fetch(receiverID);
 			this.preemptiveRoundRobinProcessing(indexBlock);
 			
-			printLine("indexAddress: " + indexAddress);
+			printLine("receiverID: " + receiverID);
 			printLine("indexBlock: " + indexBlock);
 			
 			break;
@@ -509,18 +502,28 @@ public class OS implements OperatingSystem {
 			break;		
 		case SystemCall.getSlot:
 			printLine("SystemCall: getSlot");
+			int beforeGetSlot = this.simHW.fetch(Hardware.Address.systemBase);
+			printLine("beforeGetSlot: " + beforeGetSlot);
+			receiverID =  this.simHW.fetch(Hardware.Address.systemBase + 1); // Get register 1.
+			indexBlock = this.simHW.fetch(receiverID);
 			
-			indexAddress =  this.simHW.fetch(1); // Get register 1.
-			indexBlock = this.simHW.fetch(indexAddress);
+			int status = this.simHW.fetch(Hardware.Address.systemBase);
+			printLine("status: " + status);
 			
-			this.simHW.store(Hardware.Address.systemBase + 1, indexAddress);
+			this.simHW.store(Hardware.Address.systemBase + 1, receiverID);
 			this.simHW.store(Hardware.Address.systemBase + 2, indexBlock);
 			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);			
 			break;		
 		case SystemCall.putSlot:
 			printLine("SystemCall: putSlot");
+			int w0 = this.simHW.fetch(Hardware.Address.systemBase);
+			int w1 = this.simHW.fetch(Hardware.Address.systemBase + 1);
+			int w2 = this.simHW.fetch(Hardware.Address.systemBase + 2);
+			printLine("w0: " + w0);
+			printLine("w0: " + w1);
+			printLine("w0: " + w2);
+			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
 			
-			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);	
 			break;		
 		case SystemCall.yield:
 			printLine("SystemCall: yield");			
@@ -732,7 +735,7 @@ public class OS implements OperatingSystem {
 		
 		for (int i = 0; i < subParts.size(); i++)
 		{
-			BlockEntity blkEnt = new BlockEntity(i);
+			BlockEntity blkEnt = new BlockEntity();
 			blkEnt.setWordEntityList(subParts.get(i));
 			dEnt.getBlockEntityList().add(blkEnt);
 		}				
@@ -790,10 +793,9 @@ public class OS implements OperatingSystem {
 				printLine("queueProcessExecution.baseRegister: " + baseRegister);
 				printLine("queueProcessExecution.topRegister: " + topRegister);
 				printLine("");
-				
-				int index = i;
+								
 				// Set the program block list to allow to iterate using a preemptive round robin scheduling scheme base on a count down.
-				this.setProgramBlockList(processStartBlockAddress, proBlock, pCRegister, baseRegister, topRegister, index);
+				this.setProgramBlockList(processStartBlockAddress, proBlock, pCRegister, baseRegister, topRegister);
 								
 				currentProcessFirstBlock += proBlock; // Update the program start to the next block after the current process last block.				
 			}			
@@ -808,8 +810,8 @@ public class OS implements OperatingSystem {
 	 * @param baseRegister
 	 * @param topRegister
 	 */
-	private void setProgramBlockList(int programStartBlock, int processBlockCount, int pCRegister, int baseRegister, int topRegister, int index){
-		BlockEntity bEnt = new BlockEntity(index);
+	private void setProgramBlockList(int programStartBlock, int processBlockCount, int pCRegister, int baseRegister, int topRegister){
+		BlockEntity bEnt = new BlockEntity();
 		for (int proBlockIndex = programStartBlock; proBlockIndex <= processBlockCount; proBlockIndex++){ // Go through the addresses in block range.
 			List<WordEntity> iBlock = dEnt.getBlockEntityList().get(proBlockIndex).getWordEntityList(); // Get the block range based on start and end blocks.
 			for (int j = 0; j < iBlock.size(); j ++) {

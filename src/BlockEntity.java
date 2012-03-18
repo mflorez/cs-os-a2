@@ -9,24 +9,13 @@ import java.util.ArrayList;
 public class BlockEntity {
 	private int BaseRegister, TopRegister, PCRegister;	
 	private List<WordEntity> wordEntityList;
-	
-	private int i;
-	
+		
 	/**
 	 * Block entity
 	 */
-	public BlockEntity(int i){
-		this.i = i;
+	public BlockEntity(){		
 		wordEntityList = new ArrayList<WordEntity>();		
 	}	
-	
-	/**
-	 * Call method
-	 * @return
-	 */
-	public int call() {
-		return i;
-	}
 	
 	/**
 	 * Gets the word entity list
