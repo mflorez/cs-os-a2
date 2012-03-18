@@ -25,6 +25,8 @@ public class OS implements OperatingSystem {
 	private int terminalDataStartAddress = 0;
 	private int numberOfCharToRead = 0;	
 	private int countdown = 2000;	
+	private int receiverId;
+	private int slotValue;
 	
 	private BlockReadData lastUserSpaceBlockReadData;
 	private BlockReadData lastSystemSpaceBlockReadData;
@@ -315,10 +317,7 @@ public class OS implements OperatingSystem {
 			 * reloaded from device.
 			 */
 			printLine("Info: block in MemoryManager...:");
-		}
-		
-		
-		
+		}		
 	}
 	
 	/**
@@ -510,20 +509,20 @@ public class OS implements OperatingSystem {
 			int status = this.simHW.fetch(Hardware.Address.systemBase);
 			printLine("status: " + status);
 			
+			receiverId = this.simHW.fetch(Hardware.Address.systemBase + 1);
+			slotValue = this.simHW.fetch(Hardware.Address.systemBase + 2);
+			printLine("w0: (receiverId) " + receiverId);			
+			printLine("w0: (slotValue) " + slotValue);
+			
 			this.simHW.store(Hardware.Address.systemBase + 1, receiverID);
 			this.simHW.store(Hardware.Address.systemBase + 2, indexBlock);
 			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);			
 			break;		
 		case SystemCall.putSlot:
-			printLine("SystemCall: putSlot");
-			int w0 = this.simHW.fetch(Hardware.Address.systemBase);
-			int w1 = this.simHW.fetch(Hardware.Address.systemBase + 1);
-			int w2 = this.simHW.fetch(Hardware.Address.systemBase + 2);
-			printLine("w0: " + w0);
-			printLine("w0: " + w1);
-			printLine("w0: " + w2);
+			printLine("SystemCall: putSlot");			
 			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);
-			
+			this.simHW.store(Hardware.Address.systemBase + 1, slotValue);
+			this.simHW.store(Hardware.Address.systemBase + 2, receiverId);
 			break;		
 		case SystemCall.yield:
 			printLine("SystemCall: yield");			
