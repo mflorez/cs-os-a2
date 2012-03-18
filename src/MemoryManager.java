@@ -3,11 +3,22 @@ import java.util.List;
 public class MemoryManager {
 
 	private List<BlockReadWriteDetails> blockReadWriteDetailList;
-	private int blockCount;
-	private int nextBlock;
-		
+	
+	int blockIndex;
+	int nextBlock;
+	int startIndex;
+	
+	public int getBlockIndex() {
+		return blockIndex;
+	}
+	
+	public int getNextBlock() {
+		blockIndex = nextBlock++;
+		return blockIndex;
+	}
+
 	public MemoryManager(List<BlockReadWriteDetails> blockReadWriteDetailList){
-		this.blockReadWriteDetailList = blockReadWriteDetailList;
+		this.blockReadWriteDetailList = blockReadWriteDetailList;		
 	}
 
 	public List<BlockReadWriteDetails> getBlockReadWriteDetailList() {
@@ -17,20 +28,8 @@ public class MemoryManager {
 	public void setBlockReadWriteDetailList(
 			List<BlockReadWriteDetails> blockReadWriteDetailList) {
 		this.blockReadWriteDetailList = blockReadWriteDetailList;
-	}	
-	
-	public int getBlockIndex() {
-		blockCount = nextBlock;
-		return blockCount;
 	}
-
-	public void setBlockCount(int blockCount) {
-		this.blockCount = blockCount;
-	}
-
-	public int getNextBlock() {
-		return nextBlock++;
-	}
+		
 
 	/**
 	 * Find the block based on the address and block information.

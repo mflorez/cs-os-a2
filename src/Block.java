@@ -1,5 +1,5 @@
 
-public abstract class Block {
+public class Block {
 
 	private int blockNumber;
 	private int blockAddress;

@@ -15,7 +15,7 @@ public class OS implements OperatingSystem {
 	int systemBlockCount;
 	int systemBlockStartAddress;
 	int ttyData = 1;
-	
+		
 	boolean terminalInUse;
 	private Stack<Integer> terminalUseStack;
 	
@@ -60,14 +60,15 @@ public class OS implements OperatingSystem {
 		
 		lastUserSpaceBlockReadData = new BlockReadData();
 		lastSystemSpaceBlockReadData = new BlockReadData();
-		/*
-		 * Set the initial system base start address.
-		 */
-		lastSystemSpaceBlockReadData.setBlockAddress(Hardware.Address.systemBase);
 		
-		userSpaceMemManager = new MemoryManager(userSpaceBlockReadWriteDetailList);
-		systemSpaceMemManager = new MemoryManager(systemSpaceBlockReadWriteDetailList);	
-		systemSpaceMemManager.getNextBlock(); // Start from 1 index to allow for the system registers
+		int startBlockIndex = 4;
+		int systemBlockStartAddress = Hardware.Address.systemBase + (5 * 32);
+		
+		lastSystemSpaceBlockReadData.setBlockAddress(startBlockIndex);
+		lastSystemSpaceBlockReadData.setBlockAddress(systemBlockStartAddress);
+				
+		systemSpaceMemManager = new MemoryManager(systemSpaceBlockReadWriteDetailList);
+		userSpaceMemManager = new MemoryManager(userSpaceBlockReadWriteDetailList);		
 	}
 	
 	/**
@@ -275,41 +276,65 @@ public class OS implements OperatingSystem {
 			/*
 			 * I has not reached 32; track it with MemoryManager.
 			 */
-			int nextAvailableBlockIndex = lastUserSpaceBlockReadData.getBlockNumber() + 1;
-			int nextAvailableBlockAddress = lastUserSpaceBlockReadData.getBlockAddress() + 32;
+			int nextUserSpaceAvailableBlockIndex = lastUserSpaceBlockReadData.getBlockNumber() + 1;
+			int nextUserSpaceAvailableBlockAddress = lastUserSpaceBlockReadData.getBlockAddress() + 32;			
+			
+			printLine("nextAvailableBlockIndex: " + nextUserSpaceAvailableBlockIndex);
+			printLine("nextAvailableBlockAddress: " + nextUserSpaceAvailableBlockAddress);
 
-			printLine("nextAvailableBlockIndex: " + nextAvailableBlockIndex);
-			printLine("nextAvailableBlockAddress: " + nextAvailableBlockAddress);
-
-			if (nextAvailableBlockIndex < 32) {
+			if (nextUserSpaceAvailableBlockIndex < 32) {
+				
 				/*
 				 * The block was not found in manager; it needs to be added to
 				 * the next block in user space and added to MemoryManager.
 				 */
-				int nxtBlkIdx = this.getUserSpaceNextBlock();
-				loadBlockToUserSpace(nxtBlkIdx, nextAvailableBlockAddress);
+				int nxtUsrSpaceBlkIdx = this.getUserSpaceNextBlock();
+				loadBlockToUserSpace(nxtUsrSpaceBlkIdx, nextUserSpaceAvailableBlockAddress);
+				
 				/*
 				 * Add to user space memory management.
 				 */
-				addUserBaseBlockToMemoryManager(nextAvailableBlockIndex, nextAvailableBlockAddress, blockNumber, readToAddress);
-			} else if (nextAvailableBlockIndex == 32) {					
-				/*
-				 * Check for end of usable user space. Start using system base +
-				 * 32 Start second block in system space. Next available is
-				 * blockCounter. Start address of the second block.
-				 */	
-				int nextSystemBaseBlockIndex = this.getSystemSpaceNextBlock();				
-				/*
-				 * Address was set systemBase when initialized.
-				 */
-				int nextSystemBaseBlockStartAddress = lastSystemSpaceBlockReadData.getBlockAddress() + 32; 
+				addUserBaseBlockToMemoryManager(nextUserSpaceAvailableBlockIndex, nextUserSpaceAvailableBlockAddress, blockNumber, readToAddress);
+			} else if (nextUserSpaceAvailableBlockIndex == 32) {	
 				
-				printLine("nextSystemBaseBlockIndex: " + nextSystemBaseBlockIndex);
-				printLine("nextSystemBaseBlockStartAddress: " + nextSystemBaseBlockStartAddress);
+				int nextSystemSpaceAvailableBlockIndex = lastSystemSpaceBlockReadData.getBlockNumber() + 1;
+				int nextSystemSpaceAvailableBlockAddress = lastSystemSpaceBlockReadData.getBlockAddress() + 32;
+				
+				printLine("nextSystemSpaceAvailableBlockIndex: " + nextSystemSpaceAvailableBlockIndex);
+				printLine("nextSystemSpaceAvailableBlockAddress: " + nextSystemSpaceAvailableBlockAddress);
+				printLine("nextAvailableBlockIndex: (Inside == 32)" + nextSystemSpaceAvailableBlockIndex);
+								
+				/*
+				 * The block was not found in manager; it needs to be added to
+				 * the next block in user space and added to MemoryManager.
+				 */
+				int nxtSysSpaceBlkIdx = nextSystemSpaceAvailableBlockIndex;
+				loadBlockToUserSpace(nxtSysSpaceBlkIdx, nextUserSpaceAvailableBlockAddress);
+				
+				printLine("");
+				printLine("");
+				printLine("nxtSysSpaceBlkIdx: " + nxtSysSpaceBlkIdx);
+				printLine("nextSystemSpaceAvailableBlockAddress: " + nextSystemSpaceAvailableBlockAddress);
+				printLine("");
+				printLine("");	
+				
+				/*
+				 * The block was not found in manager; it needs to be added to
+				 * the next block in system space and added to MemoryManager.
+				 */				
+				loadBlockToSystemSpace(nxtSysSpaceBlkIdx, nextSystemSpaceAvailableBlockAddress);
+				
 				/*
 				 * Add to system space memory management.
 				 */
-				addSystemBaseBlockToMemoryManager(nextSystemBaseBlockIndex, nextSystemBaseBlockStartAddress, blockNumber, readToAddress);
+				addSystemBaseBlockToMemoryManager(nxtSysSpaceBlkIdx, nextSystemSpaceAvailableBlockAddress, blockNumber, readToAddress);
+				
+				/*
+				 * Save the settings to allow an increment next go around.
+				 */
+				// lastSystemSpaceBlockReadData.setBlockNumber(nxtSysSpaceBlkIdx);
+				// lastSystemSpaceBlockReadData.setBlockAddress(nextSystemSpaceAvailableBlockAddress);
+				
 			}
 		} else {
 			/*
@@ -329,6 +354,26 @@ public class OS implements OperatingSystem {
 		this.simHW.store(Hardware.Address.diskBlockRegister, blockNumber);  			
 		this.simHW.store(Hardware.Address.diskAddressRegister, blockAddress);			
 		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);
+	}
+	
+	/**
+	 * Add block to next available user space block. Read from disk to primary storage 32 addresses at the time.
+	 * @param blockNumber
+	 * @param blockAddress
+	 */
+	private void loadBlockToSystemSpace(int blockNumber, int blockAddress){
+		
+		printLine("Info before: loadBlockToSystemSpace(int blockNumber, int blockAddress)");
+		printLine("");
+		printLine("");
+		
+		this.simHW.store(Hardware.Address.diskBlockRegister, blockNumber);  			
+		this.simHW.store(Hardware.Address.diskAddressRegister, blockAddress);			
+		this.simHW.store(Hardware.Address.diskCommandRegister, Hardware.Disk.readCommand);	
+		printLine("Info after: loadBlockToSystemSpace(int blockNumber, int blockAddress)");
+		
+		printLine("");
+		printLine("");		
 	}
 	
 	/**
@@ -414,7 +459,7 @@ public class OS implements OperatingSystem {
 			} else {
 				printLine("Info: Block Not Found In UserSpace Memory Manager: " + writeFromAddress);
 			}
-		} else if (writeFromAddress > Hardware.Address.systemBase && writeFromAddress < Hardware.Address.userBase) {
+		} else if (writeFromAddress > Hardware.Address.deviceBase && writeFromAddress < Hardware.Address.deviceTop) {
 			printLine("Info: writeDiskBlockToDevice(int blockNumber, int writeFromAddress)");
 			BlockWriteData blkWrDt = new BlockWriteData();
 			blkWrDt.setBlockNumber(blockNumber);

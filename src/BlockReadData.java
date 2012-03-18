@@ -3,7 +3,7 @@ public class BlockReadData extends Block {
 
 	private boolean readStarted;
 	private boolean readComplete;
-				
+	
 	public boolean isReadStarted() {
 		return readStarted;
 	}
