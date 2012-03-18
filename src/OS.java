@@ -71,7 +71,7 @@ public class OS implements OperatingSystem {
 	}	
 
 	public int getSystemSpaceNextBlock() {
-		systemSpaceNextBlock = systemSpaceMemManager.getNextBlock() + 1;
+		systemSpaceNextBlock = systemSpaceMemManager.getNextBlock();
 		return systemSpaceNextBlock;
 	}
 	
@@ -98,7 +98,7 @@ public class OS implements OperatingSystem {
 			/*
 			 * Start tracking read information.
 			 */
-			lastUserSpaceBlockReadData.setBlockNumber(4); // Save it before it is incremented.
+			lastUserSpaceBlockReadData.setBlockNumber(0); // Save it before it is incremented.
 			lastUserSpaceBlockReadData.setBlockAddress(userBaseStartAddress); // Start @ user base.
 			lastUserSpaceBlockReadData.setReadStarted(true); // The read started.  Disk interrupt will be triggered.
 			lastUserSpaceBlockReadData.setProgramsStarted(false); // Programs started.
@@ -285,18 +285,14 @@ public class OS implements OperatingSystem {
 				printLine("nextSystemSpaceAvailableBlockIndex: " + nextSystemSpaceAvailableBlockIndex);
 				printLine("nextSystemSpaceAvailableBlockAddress: " + nextSystemSpaceAvailableBlockAddress);
 				
-				/*
-				 * The block was not found in manager; it needs to be added to
-				 * the next block in system space and added to MemoryManager.
-				 */		
-				int nxtSysSpaceBlkIdx = this.getSystemSpaceNextBlock();
-				printLine("nxtSysSpaceBlkIdx: " + nxtSysSpaceBlkIdx);
 				
-				loadBlockToSystemSpace(nxtSysSpaceBlkIdx, nextSystemSpaceAvailableBlockAddress);
+				printLine("nextSystemSpaceAvailableBlockAddress: " + nextSystemSpaceAvailableBlockAddress);
+				
+				loadBlockToSystemSpace(nextSystemSpaceAvailableBlockIndex, nextSystemSpaceAvailableBlockAddress);
 				
 				printLine("");
 				printLine("");
-				printLine("nxtSysSpaceBlkIdx: " + nxtSysSpaceBlkIdx);
+				printLine("nextSystemSpaceAvailableBlockAddress: " + nextSystemSpaceAvailableBlockAddress);
 				printLine("nextSystemSpaceAvailableBlockAddress: " + nextSystemSpaceAvailableBlockAddress);
 				printLine("");
 				printLine("");	
@@ -304,12 +300,12 @@ public class OS implements OperatingSystem {
 				/*
 				 * Add to system space memory management.
 				 */
-				addSystemBaseBlockToMemoryManager(nxtSysSpaceBlkIdx, nextSystemSpaceAvailableBlockAddress, blockNumber, readToAddress);
+				addSystemBaseBlockToMemoryManager(nextSystemSpaceAvailableBlockAddress, nextSystemSpaceAvailableBlockAddress, blockNumber, readToAddress);
 				
 				/*
 				 * Save the settings to allow an increment next go around.
 				 */
-				lastSystemSpaceBlockReadData.setBlockNumber(nxtSysSpaceBlkIdx);
+				lastSystemSpaceBlockReadData.setBlockNumber(nextSystemSpaceAvailableBlockAddress);
 				lastSystemSpaceBlockReadData.setBlockAddress(nextSystemSpaceAvailableBlockAddress);				
 			}
 		} else {
