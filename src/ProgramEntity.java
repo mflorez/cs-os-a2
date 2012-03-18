@@ -35,7 +35,17 @@ public class ProgramEntity extends DiskEntity {
 	public int next() { // Round Robin, if we get to the end start over.
 		if (!it.hasNext()) {
 			this.it = list.iterator();
-		}		
-		return this.call();
+		}
+		BlockEntity ent = it.next();
+		
+		return ent.call();
+		
+//		// if we get to the end, start again
+//				if (!it.hasNext()) {
+//					it = list.iterator();
+//				}
+//				Robin robin = it.next();
+//
+//				return robin.call();
 	}
 }

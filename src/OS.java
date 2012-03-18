@@ -24,7 +24,7 @@ public class OS implements OperatingSystem {
 	private int deviceStatus;
 	private int terminalDataStartAddress = 0;
 	private int numberOfCharToRead = 0;	
-	private int countdown = 10000;	
+	private int countdown = 300;	
 	
 	private BlockReadData lastUserSpaceBlockReadData;
 	private BlockReadData lastSystemSpaceBlockReadData;
@@ -209,7 +209,14 @@ public class OS implements OperatingSystem {
 			if (cDownReg == 0) { // Count down finished reset to stop it from hanging.
 				this.simHW.store(Hardware.Address.countdownRegister, countdown); // set a new count down to keep system from hanging.
 				simHW.store(Hardware.Address.PCRegister, Hardware.Address.idleStart);//Set PCRegister to prevent illegal instruction interrupt
+				
+				simHW.store(Hardware.Address.countdownRegister, countdown); // Set a timer to start program execution.
+				
 			}
+			
+			printLine("Info: this.proEnt.call(): " + this.proEnt.call());
+			printLine("Info: this.proEnt.next(): " + this.proEnt.next());
+			
 			break;
 		}
 	}
@@ -511,7 +518,8 @@ public class OS implements OperatingSystem {
 			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);			
 			break;		
 		case SystemCall.putSlot:
-			printLine("SystemCall: putSlot");			
+			printLine("SystemCall: putSlot");
+			
 			this.simHW.store(Hardware.Address.systemBase, Hardware.Status.ok);	
 			break;		
 		case SystemCall.yield:
@@ -724,7 +732,7 @@ public class OS implements OperatingSystem {
 		
 		for (int i = 0; i < subParts.size(); i++)
 		{
-			BlockEntity blkEnt = new BlockEntity();
+			BlockEntity blkEnt = new BlockEntity(i);
 			blkEnt.setWordEntityList(subParts.get(i));
 			dEnt.getBlockEntityList().add(blkEnt);
 		}				
@@ -783,8 +791,9 @@ public class OS implements OperatingSystem {
 				printLine("queueProcessExecution.topRegister: " + topRegister);
 				printLine("");
 				
+				int index = i;
 				// Set the program block list to allow to iterate using a preemptive round robin scheduling scheme base on a count down.
-				this.setProgramBlockList(processStartBlockAddress, proBlock, pCRegister, baseRegister, topRegister);
+				this.setProgramBlockList(processStartBlockAddress, proBlock, pCRegister, baseRegister, topRegister, index);
 								
 				currentProcessFirstBlock += proBlock; // Update the program start to the next block after the current process last block.				
 			}			
@@ -799,8 +808,8 @@ public class OS implements OperatingSystem {
 	 * @param baseRegister
 	 * @param topRegister
 	 */
-	private void setProgramBlockList(int programStartBlock, int processBlockCount, int pCRegister, int baseRegister, int topRegister){
-		BlockEntity bEnt = new BlockEntity();
+	private void setProgramBlockList(int programStartBlock, int processBlockCount, int pCRegister, int baseRegister, int topRegister, int index){
+		BlockEntity bEnt = new BlockEntity(index);
 		for (int proBlockIndex = programStartBlock; proBlockIndex <= processBlockCount; proBlockIndex++){ // Go through the addresses in block range.
 			List<WordEntity> iBlock = dEnt.getBlockEntityList().get(proBlockIndex).getWordEntityList(); // Get the block range based on start and end blocks.
 			for (int j = 0; j < iBlock.size(); j ++) {

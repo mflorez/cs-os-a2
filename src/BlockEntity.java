@@ -10,6 +10,24 @@ public class BlockEntity {
 	private int BaseRegister, TopRegister, PCRegister;	
 	private List<WordEntity> wordEntityList;
 	
+	private int i;
+	
+	/**
+	 * Block entity
+	 */
+	public BlockEntity(int i){
+		this.i = i;
+		wordEntityList = new ArrayList<WordEntity>();		
+	}	
+	
+	/**
+	 * Call method
+	 * @return
+	 */
+	public int call() {
+		return i;
+	}
+	
 	/**
 	 * Gets the word entity list
 	 * @return
@@ -24,13 +42,6 @@ public class BlockEntity {
 	 */
 	public void setWordEntityList(List<WordEntity> wordEntityList) {
 		this.wordEntityList = wordEntityList;
-	}
-
-	/**
-	 * Block entity
-	 */
-	public BlockEntity(){
-		wordEntityList = new ArrayList<WordEntity>();		
 	}		
 	
 	/**
@@ -77,6 +88,5 @@ public class BlockEntity {
 	 */
 	public void setPCRegister(int pCRegister) {
 		PCRegister = pCRegister;
-	}
-	
+	}	
 }
