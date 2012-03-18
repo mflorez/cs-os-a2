@@ -4,17 +4,15 @@ public class MemoryManager {
 
 	private List<BlockReadWriteDetails> blockReadWriteDetailList;
 	
-	int blockIndex;
-	int nextBlock;
-	int startIndex;
 	
-	public int getBlockIndex() {
-		return blockIndex;
+	int nextBlock;	
+		
+	public int getNextBlock() {
+		return nextBlock++;
 	}
 	
-	public int getNextBlock() {
-		blockIndex = nextBlock++;
-		return blockIndex;
+	public void setNextBlock(int nextBlock) {
+		this.nextBlock = nextBlock;		
 	}
 
 	public MemoryManager(List<BlockReadWriteDetails> blockReadWriteDetailList){
